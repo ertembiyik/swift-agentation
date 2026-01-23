@@ -22,22 +22,12 @@ let project = Project(
                 "UILaunchScreen": [
                     "UIColorName": "LaunchScreenColor",
                     "UIImageName": ""
-                ],
-                "UIApplicationSceneManifest": [
-                    "UIApplicationSupportsMultipleScenes": false,
-                    "UISceneConfigurations": [
-                        "UIWindowSceneSessionRoleApplication": [
-                            [
-                                "UISceneConfigurationName": "Default Configuration",
-                                "UISceneDelegateClassName": "$(PRODUCT_MODULE_NAME).SceneDelegate"
-                            ]
-                        ]
-                    ]
                 ]
             ]),
             sources: [
-                "Sources/**",
-                "!Sources/MacApp/**"
+                "Sources/MacApp/**",
+                "Sources/SwiftUIDemo/**",
+                "Sources/UIKitDemo/**"
             ],
             resources: ["Resources/**"],
             dependencies: [
