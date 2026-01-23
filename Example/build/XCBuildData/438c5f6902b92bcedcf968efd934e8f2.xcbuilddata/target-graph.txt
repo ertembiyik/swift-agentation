@@ -1,0 +1,6 @@
+Target dependency graph (3 targets)
+Target 'AgentationExample' in project 'AgentationExample'
+➜ Explicit dependency on target 'Agentation' in project 'Agentation'
+Target 'Agentation' in project 'Agentation'
+➜ Explicit dependency on target 'Agentation' in project 'Agentation'
+Target 'Agentation' in project 'Agentation' (no dependencies)

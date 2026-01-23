@@ -1,0 +1,11 @@
+/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/Agentation.swift
+/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/AgentationSession.swift
+/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/Inspection/HierarchyInspector.swift
+/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/Models/ElementInfo.swift
+/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/Models/FeedbackItem.swift
+/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/Models/PageFeedback.swift
+/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/UI/AnnotationPopupView.swift
+/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/UI/ControlBarView.swift
+/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/UI/ElementHighlightView.swift
+/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/UI/OverlayWindow.swift
+/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/ViewModifier+Agentation.swift

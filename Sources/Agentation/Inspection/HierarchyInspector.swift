@@ -1,0 +1,325 @@
+#if os(iOS)
+import UIKit
+public typealias PlatformView = UIView
+public typealias PlatformWindow = UIWindow
+#elseif os(macOS)
+import AppKit
+public typealias PlatformView = NSView
+public typealias PlatformWindow = NSWindow
+#endif
+
+@MainActor
+public final class HierarchyInspector {
+
+    public static let shared = HierarchyInspector()
+
+    private(set) var viewLookup: [UUID: WeakViewRef] = [:]
+
+    private init() {}
+
+    public func captureHierarchy() -> [ElementInfo] {
+        viewLookup.removeAll()
+        var elements: [ElementInfo] = []
+
+        #if os(iOS)
+        let allScenes = UIApplication.shared.connectedScenes
+        for scene in allScenes {
+            guard let windowScene = scene as? UIWindowScene else { continue }
+
+            for window in windowScene.windows {
+                if window is AgentationOverlayWindow {
+                    continue
+                }
+
+                let windowElement = inspectView(
+                    window,
+                    parentPath: "",
+                    depth: 0
+                )
+                elements.append(windowElement)
+            }
+        }
+        #elseif os(macOS)
+        for window in NSApplication.shared.windows {
+            if window is AgentationOverlayPanel {
+                continue
+            }
+
+            guard let contentView = window.contentView else { continue }
+
+            let windowElement = inspectView(
+                contentView,
+                parentPath: "",
+                depth: 0
+            )
+            elements.append(windowElement)
+        }
+        #endif
+
+        return elements
+    }
+
+    func view(for elementId: UUID) -> PlatformView? {
+        viewLookup[elementId]?.view
+    }
+
+    public func currentPageName() -> String {
+        #if os(iOS)
+        guard let topViewController = topViewController() else {
+            return "Unknown"
+        }
+        return String(describing: type(of: topViewController))
+        #elseif os(macOS)
+        guard let keyWindow = NSApplication.shared.keyWindow,
+              let windowController = keyWindow.windowController else {
+            return NSApplication.shared.keyWindow?.title ?? "Unknown"
+        }
+        return String(describing: type(of: windowController))
+        #endif
+    }
+
+    public func viewportSize() -> CGSize {
+        #if os(iOS)
+        guard let window = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first?.windows
+            .first(where: { !($0 is AgentationOverlayWindow) })
+        else {
+            return .zero
+        }
+        return window.bounds.size
+        #elseif os(macOS)
+        guard let window = NSApplication.shared.windows.first(where: { !($0 is AgentationOverlayPanel) }) else {
+            return .zero
+        }
+        return window.contentView?.bounds.size ?? window.frame.size
+        #endif
+    }
+
+    public func printHierarchy() -> String {
+        var output = ""
+
+        let selector = NSSelectorFromString("_subtreeDescription")
+
+        #if os(iOS)
+        let allScenes = UIApplication.shared.connectedScenes
+
+        for scene in allScenes {
+            guard let windowScene = scene as? UIWindowScene else { continue }
+
+            for window in windowScene.windows where !(window is AgentationOverlayWindow) {
+                if window.responds(to: selector) {
+                    let result = window.perform(selector)
+                    if let description = result?.takeUnretainedValue() as? String {
+                        output += description + "\n"
+                    }
+                }
+            }
+        }
+        #elseif os(macOS)
+        for window in NSApplication.shared.windows where !(window is AgentationOverlayPanel) {
+            if let contentView = window.contentView, contentView.responds(to: selector) {
+                let result = contentView.perform(selector)
+                if let description = result?.takeUnretainedValue() as? String {
+                    output += description + "\n"
+                }
+            }
+        }
+        #endif
+
+        return output
+    }
+
+    #if os(iOS)
+    public func printViewControllerHierarchy() -> String {
+        let selector = NSSelectorFromString("_printHierarchy")
+
+        guard let rootVC = topViewController()?.view.window?.rootViewController else {
+            return ""
+        }
+
+        if rootVC.responds(to: selector) {
+            let result = rootVC.perform(selector)
+            if let description = result?.takeUnretainedValue() as? String {
+                return description
+            }
+        }
+
+        return ""
+    }
+
+    private func topViewController(
+        base: UIViewController? = nil
+    ) -> UIViewController? {
+        let baseVC = base ?? UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow && !($0 is AgentationOverlayWindow) }?
+            .rootViewController
+
+        if let nav = baseVC as? UINavigationController {
+            return topViewController(base: nav.visibleViewController)
+        }
+
+        if let tab = baseVC as? UITabBarController {
+            if let selected = tab.selectedViewController {
+                return topViewController(base: selected)
+            }
+        }
+
+        if let presented = baseVC?.presentedViewController {
+            return topViewController(base: presented)
+        }
+
+        return baseVC
+    }
+    #endif
+
+    private func inspectView(
+        _ view: PlatformView,
+        parentPath: String,
+        depth: Int
+    ) -> ElementInfo {
+        let typeName = String(describing: type(of: view))
+
+        let pathComponent = buildPathComponent(for: view)
+        let currentPath = parentPath.isEmpty ? pathComponent : "\(parentPath) > \(pathComponent)"
+
+        #if os(iOS)
+        let screenFrame = view.convert(view.bounds, to: nil)
+        let accessibilityLabel = view.accessibilityLabel
+        let accessibilityIdentifier = view.accessibilityIdentifier
+        let accessibilityHint = view.accessibilityHint
+        let accessibilityValue = view.accessibilityValue
+        let subviews = view.subviews
+        let isHidden = view.isHidden
+        let alpha = view.alpha
+        #elseif os(macOS)
+        let screenFrame: CGRect
+        if let window = view.window {
+            let viewFrameInWindow = view.convert(view.bounds, to: nil)
+            let windowFrameOnScreen = window.frame
+            screenFrame = CGRect(
+                x: windowFrameOnScreen.origin.x + viewFrameInWindow.origin.x,
+                y: windowFrameOnScreen.origin.y + viewFrameInWindow.origin.y,
+                width: viewFrameInWindow.width,
+                height: viewFrameInWindow.height
+            )
+        } else {
+            screenFrame = view.frame
+        }
+        let accessibilityLabel = view.accessibilityLabel()
+        let accessibilityIdentifier = view.accessibilityIdentifier()
+        let accessibilityHint = view.accessibilityHelp()
+        let accessibilityValue = view.accessibilityValue() as? String
+        let subviews = view.subviews
+        let isHidden = view.isHidden
+        let alpha = view.alphaValue
+        #endif
+
+        let agentationTag = AgentationTagRegistry.shared.tag(for: view)
+
+        var children: [ElementInfo] = []
+        for subview in subviews {
+            guard !isHidden, alpha > 0.01 else { continue }
+            guard subview.bounds.width > 0, subview.bounds.height > 0 else { continue }
+
+            let childInfo = inspectView(
+                subview,
+                parentPath: currentPath,
+                depth: depth + 1
+            )
+            children.append(childInfo)
+        }
+
+        let elementId = UUID()
+        viewLookup[elementId] = WeakViewRef(view: view)
+
+        return ElementInfo(
+            id: elementId,
+            accessibilityLabel: accessibilityLabel,
+            accessibilityIdentifier: accessibilityIdentifier,
+            accessibilityHint: accessibilityHint,
+            accessibilityValue: accessibilityValue,
+            typeName: typeName,
+            frame: screenFrame,
+            path: currentPath,
+            children: children,
+            agentationTag: agentationTag
+        )
+    }
+
+    private func buildPathComponent(for view: PlatformView) -> String {
+        if let tag = AgentationTagRegistry.shared.tag(for: view) {
+            return "[\(tag)]"
+        }
+
+        #if os(iOS)
+        let identifier = view.accessibilityIdentifier
+        let label = view.accessibilityLabel
+        #elseif os(macOS)
+        let identifier: String? = {
+            let id = view.accessibilityIdentifier()
+            return id.isEmpty ? nil : id
+        }()
+        let label: String? = view.accessibilityLabel()
+        #endif
+
+        if let identifier, !identifier.isEmpty {
+            return "#\(identifier)"
+        }
+
+        if let label, !label.isEmpty {
+            let truncated = label.count > 20 ? String(label.prefix(20)) + "..." : label
+            return "\"\(truncated)\""
+        }
+
+        let typeName = String(describing: type(of: view))
+
+        var simplified = typeName
+            .replacingOccurrences(of: "UI", with: "")
+            .replacingOccurrences(of: "NS", with: "")
+            .replacingOccurrences(of: "_", with: "")
+
+        if typeName.contains("HostingView") || typeName.contains("_UIHosting") || typeName.contains("_NSHosting") {
+            simplified = "HostingView"
+        }
+
+        return "\(simplified)"
+    }
+}
+
+struct WeakViewRef {
+    weak var view: PlatformView?
+}
+
+#if os(iOS)
+internal class AgentationOverlayWindow: UIWindow {}
+#elseif os(macOS)
+internal class AgentationOverlayPanel: NSPanel {}
+#endif
+
+@MainActor
+public final class AgentationTagRegistry {
+    public static let shared = AgentationTagRegistry()
+
+    private var tags: [ObjectIdentifier: String] = [:]
+
+    private init() {}
+
+    public func setTag(_ tag: String, for view: PlatformView) {
+        tags[ObjectIdentifier(view)] = tag
+    }
+
+    public func tag(for view: PlatformView) -> String? {
+        tags[ObjectIdentifier(view)]
+    }
+
+    public func removeTag(for view: PlatformView) {
+        tags.removeValue(forKey: ObjectIdentifier(view))
+    }
+
+    public func clearAll() {
+        tags.removeAll()
+    }
+}

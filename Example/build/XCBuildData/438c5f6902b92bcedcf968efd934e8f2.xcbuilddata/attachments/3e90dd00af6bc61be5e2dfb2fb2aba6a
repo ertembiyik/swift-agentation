@@ -1,0 +1,4 @@
+module Agentation {
+header "Agentation-Swift.h"
+export *
+}

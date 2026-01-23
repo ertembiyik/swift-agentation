@@ -1,0 +1,66 @@
+{
+  "" : {
+    "const-values" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/Agentation-primary.swiftconstvalues",
+    "dependencies" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/Agentation-primary.d",
+    "diagnostics" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/Agentation-primary.dia",
+    "emit-module-dependencies" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/Agentation-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/Agentation-primary-emit-module.dia",
+    "pch" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/Agentation-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/Agentation-primary.swiftdeps"
+  },
+  "/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/Agentation.swift" : {
+    "index-unit-output-path" : "/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/Agentation.o",
+    "llvm-bc" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/Agentation.bc",
+    "object" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/Agentation.o"
+  },
+  "/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/AgentationSession.swift" : {
+    "index-unit-output-path" : "/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/AgentationSession.o",
+    "llvm-bc" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/AgentationSession.bc",
+    "object" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/AgentationSession.o"
+  },
+  "/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/Inspection/HierarchyInspector.swift" : {
+    "index-unit-output-path" : "/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/HierarchyInspector.o",
+    "llvm-bc" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/HierarchyInspector.bc",
+    "object" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/HierarchyInspector.o"
+  },
+  "/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/Models/ElementInfo.swift" : {
+    "index-unit-output-path" : "/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/ElementInfo.o",
+    "llvm-bc" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/ElementInfo.bc",
+    "object" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/ElementInfo.o"
+  },
+  "/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/Models/FeedbackItem.swift" : {
+    "index-unit-output-path" : "/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/FeedbackItem.o",
+    "llvm-bc" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/FeedbackItem.bc",
+    "object" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/FeedbackItem.o"
+  },
+  "/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/Models/PageFeedback.swift" : {
+    "index-unit-output-path" : "/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/PageFeedback.o",
+    "llvm-bc" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/PageFeedback.bc",
+    "object" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/PageFeedback.o"
+  },
+  "/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/UI/AnnotationPopupView.swift" : {
+    "index-unit-output-path" : "/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/AnnotationPopupView.o",
+    "llvm-bc" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/AnnotationPopupView.bc",
+    "object" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/AnnotationPopupView.o"
+  },
+  "/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/UI/ControlBarView.swift" : {
+    "index-unit-output-path" : "/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/ControlBarView.o",
+    "llvm-bc" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/ControlBarView.bc",
+    "object" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/ControlBarView.o"
+  },
+  "/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/UI/ElementHighlightView.swift" : {
+    "index-unit-output-path" : "/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/ElementHighlightView.o",
+    "llvm-bc" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/ElementHighlightView.bc",
+    "object" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/ElementHighlightView.o"
+  },
+  "/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/UI/OverlayWindow.swift" : {
+    "index-unit-output-path" : "/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/OverlayWindow.o",
+    "llvm-bc" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/OverlayWindow.bc",
+    "object" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/OverlayWindow.o"
+  },
+  "/Users/ertem/conductor/workspaces/swift-agentation/rabat/Sources/Agentation/ViewModifier+Agentation.swift" : {
+    "index-unit-output-path" : "/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/ViewModifier+Agentation.o",
+    "llvm-bc" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/ViewModifier+Agentation.bc",
+    "object" : "/Users/ertem/conductor/workspaces/swift-agentation/rabat/build/Agentation.build/Release-iphoneos/Agentation.build/Objects-normal/arm64/ViewModifier+Agentation.o"
+  }
+}
