@@ -35,7 +35,10 @@ let project = Project(
                     ]
                 ]
             ]),
-            sources: ["Sources/**"],
+            sources: [
+                "Sources/**",
+                "!Sources/MacApp/**"
+            ],
             resources: ["Resources/**"],
             dependencies: [
                 .package(product: "Agentation", type: .runtime)
