@@ -39,7 +39,7 @@ public final class AgentationSession {
         )
     }
 
-    public func start(from sourceFrame: CGRect? = nil) {
+    public func start() {
         guard !isActive else { return }
 
         let inspector = HierarchyInspector.shared
@@ -51,7 +51,7 @@ public final class AgentationSession {
         #if os(iOS) || targetEnvironment(macCatalyst)
         dismissKeyboardGlobally()
 
-        let overlay = OverlayWindow(session: self, sourceFrame: sourceFrame)
+        let overlay = OverlayWindow(session: self)
         overlay.isHidden = false
         overlay.makeKeyAndVisible()
         overlayWindow = overlay
@@ -60,7 +60,7 @@ public final class AgentationSession {
             return
         }
 
-        let overlay = OverlayPanel(session: self, contentRect: mainWindow.frame, sourceFrame: sourceFrame)
+        let overlay = OverlayPanel(session: self, contentRect: mainWindow.frame)
         overlay.orderFront(nil)
         overlayPanel = overlay
         #endif

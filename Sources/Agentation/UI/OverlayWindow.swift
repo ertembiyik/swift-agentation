@@ -12,18 +12,12 @@ internal final class OverlayWindow: AgentationOverlayWindow {
 
     private var controlBarHostingController: UIHostingController<ControlBarView>?
     private var overlayViewController: OverlayViewController?
-    private var morphContainerView: UIView?
 
     private var cachedHierarchy: [ElementInfo] = []
     private var hoveredElement: ElementInfo?
-    private var sourceFrame: CGRect?
 
-    private var controlBarCenterXConstraint: NSLayoutConstraint?
-    private var controlBarBottomConstraint: NSLayoutConstraint?
-
-    init(session: AgentationSession, sourceFrame: CGRect? = nil) {
+    init(session: AgentationSession) {
         self.session = session
-        self.sourceFrame = sourceFrame
 
         let windowScene = UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
@@ -73,7 +67,6 @@ internal final class OverlayWindow: AgentationOverlayWindow {
 
     private func setupControlBar() {
         guard let session else { return }
-        guard let rootVC = rootViewController else { return }
 
         let controlBar = ControlBarView(session: session)
         let hostingController = UIHostingController(rootView: controlBar)
@@ -81,76 +74,19 @@ internal final class OverlayWindow: AgentationOverlayWindow {
 
         controlBarHostingController = hostingController
 
+        guard let rootVC = rootViewController else { return }
         rootVC.addChild(hostingController)
         rootVC.view.addSubview(hostingController.view)
         hostingController.didMove(toParent: rootVC)
 
         hostingController.view.translatesAutoresizingMaskIntoConstraints = false
-
-        controlBarCenterXConstraint = hostingController.view.centerXAnchor.constraint(equalTo: rootVC.view.centerXAnchor)
-        controlBarBottomConstraint = hostingController.view.bottomAnchor.constraint(
-            equalTo: rootVC.view.safeAreaLayoutGuide.bottomAnchor,
-            constant: -20
-        )
-
         NSLayoutConstraint.activate([
-            controlBarCenterXConstraint!,
-            controlBarBottomConstraint!
-        ])
-
-        if let source = sourceFrame {
-            animateControlBarFromSource(source, hostingView: hostingController.view, in: rootVC.view)
-        }
-    }
-
-    private func animateControlBarFromSource(_ source: CGRect, hostingView: UIView, in containerView: UIView) {
-        hostingView.layoutIfNeeded()
-
-        let finalFrame = hostingView.frame
-        let finalCenter = hostingView.center
-
-        let circleSize: CGFloat = 56
-        let startCenter = CGPoint(x: source.midX, y: source.midY)
-
-        let morphView = UIVisualEffectView(effect: nil)
-        morphView.frame = CGRect(
-            x: startCenter.x - circleSize / 2,
-            y: startCenter.y - circleSize / 2,
-            width: circleSize,
-            height: circleSize
-        )
-        morphView.layer.cornerRadius = circleSize / 2
-        morphView.clipsToBounds = true
-        containerView.addSubview(morphView)
-        morphContainerView = morphView
-
-        hostingView.alpha = 0
-        hostingView.transform = CGAffineTransform(scaleX: 0.5, y: 0.5)
-
-        UIView.animate(
-            withDuration: 0.5,
-            delay: 0,
-            usingSpringWithDamping: 0.8,
-            initialSpringVelocity: 0.5,
-            options: [.curveEaseOut]
-        ) {
-            morphView.effect = UIBlurEffect(style: .systemThinMaterial)
-            morphView.frame = CGRect(
-                x: finalCenter.x - finalFrame.width / 2,
-                y: finalCenter.y - finalFrame.height / 2,
-                width: finalFrame.width,
-                height: finalFrame.height
+            hostingController.view.centerXAnchor.constraint(equalTo: rootVC.view.centerXAnchor),
+            hostingController.view.bottomAnchor.constraint(
+                equalTo: rootVC.view.safeAreaLayoutGuide.bottomAnchor,
+                constant: -20
             )
-            morphView.layer.cornerRadius = finalFrame.height / 2
-        } completion: { _ in
-            UIView.animate(withDuration: 0.2) {
-                hostingView.alpha = 1
-                hostingView.transform = .identity
-            } completion: { [weak self] _ in
-                morphView.removeFromSuperview()
-                self?.morphContainerView = nil
-            }
-        }
+        ])
     }
 
     func refreshHierarchy() {
@@ -400,17 +336,14 @@ internal final class OverlayPanel: AgentationOverlayPanel {
 
     private var controlBarHostingView: NSHostingView<ControlBarView>?
     private var overlayContentView: OverlayContentView?
-    private var morphBackgroundView: NSVisualEffectView?
 
     private var cachedHierarchy: [ElementInfo] = []
     private var hoveredElement: ElementInfo?
     private var trackingArea: NSTrackingArea?
     private var currentPopover: NSPopover?
-    private var sourceFrame: CGRect?
 
-    init(session: AgentationSession, contentRect: NSRect, sourceFrame: CGRect? = nil) {
+    init(session: AgentationSession, contentRect: NSRect) {
         self.session = session
-        self.sourceFrame = sourceFrame
 
         super.init(
             contentRect: contentRect,
@@ -441,13 +374,13 @@ internal final class OverlayPanel: AgentationOverlayPanel {
 
     private func setupControlBar() {
         guard let session else { return }
-        guard let container = contentView else { return }
 
         let controlBar = ControlBarView(session: session)
         let hostingView = NSHostingView(rootView: controlBar)
 
         controlBarHostingView = hostingView
 
+        guard let container = contentView else { return }
         container.addSubview(hostingView)
 
         hostingView.translatesAutoresizingMaskIntoConstraints = false
@@ -455,58 +388,6 @@ internal final class OverlayPanel: AgentationOverlayPanel {
             hostingView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
             hostingView.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -40)
         ])
-
-        if let source = sourceFrame {
-            animateControlBarFromSource(source, hostingView: hostingView, in: container)
-        }
-    }
-
-    private func animateControlBarFromSource(_ source: CGRect, hostingView: NSView, in containerView: NSView) {
-        hostingView.layoutSubtreeIfNeeded()
-
-        let windowFrame = frame
-        let localSource = CGRect(
-            x: source.origin.x - windowFrame.origin.x,
-            y: source.origin.y - windowFrame.origin.y,
-            width: source.width,
-            height: source.height
-        )
-
-        let finalFrame = hostingView.frame
-        let circleSize: CGFloat = 56
-
-        let morphView = NSVisualEffectView(frame: CGRect(
-            x: localSource.midX - circleSize / 2,
-            y: localSource.midY - circleSize / 2,
-            width: circleSize,
-            height: circleSize
-        ))
-        morphView.material = .hudWindow
-        morphView.blendingMode = .behindWindow
-        morphView.state = .active
-        morphView.wantsLayer = true
-        morphView.layer?.cornerRadius = circleSize / 2
-        morphView.layer?.masksToBounds = true
-        containerView.addSubview(morphView, positioned: .below, relativeTo: hostingView)
-        morphBackgroundView = morphView
-
-        hostingView.alphaValue = 0
-
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.5
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
-
-            morphView.animator().frame = finalFrame
-            morphView.animator().layer?.cornerRadius = finalFrame.height / 2
-        }, completionHandler: {
-            NSAnimationContext.runAnimationGroup({ context in
-                context.duration = 0.2
-                hostingView.animator().alphaValue = 1
-            }, completionHandler: { [weak self] in
-                morphView.removeFromSuperview()
-                self?.morphBackgroundView = nil
-            })
-        })
     }
 
     func refreshHierarchy() {

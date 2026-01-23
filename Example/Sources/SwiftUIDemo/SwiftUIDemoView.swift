@@ -8,7 +8,6 @@ struct SwiftUIDemoView: View {
     @State private var volume: Double = 50
     @State private var selectedTheme = 2
     @State private var notificationsEnabled = true
-    @State private var fabFrame: CGRect = .zero
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -24,7 +23,6 @@ struct SwiftUIDemoView: View {
 
             floatingButton
         }
-        .coordinateSpace(name: "screen")
         .navigationTitle("SwiftUI Demo")
         .agentationTag("SwiftUIDemoScreen")
     }
@@ -42,15 +40,6 @@ struct SwiftUIDemoView: View {
                 .clipShape(Circle())
                 .shadow(color: .purple.opacity(0.3), radius: 8, x: 0, y: 4)
         }
-        .background(
-            GeometryReader { geo in
-                Color.clear.onAppear {
-                    fabFrame = geo.frame(in: .global)
-                }.onChange(of: geo.frame(in: .global)) { _, newValue in
-                    fabFrame = newValue
-                }
-            }
-        )
         .padding(.trailing, 20)
         .padding(.bottom, 20)
         .agentationTag("StartAgentationFAB")
@@ -231,7 +220,7 @@ struct SwiftUIDemoView: View {
     // MARK: - Actions
 
     private func startAgentation() {
-        Agentation.shared.start(from: fabFrame) { feedback in
+        Agentation.shared.start { feedback in
             print("=== Agentation Feedback ===")
             print(feedback.toMarkdown())
             print("===========================")
