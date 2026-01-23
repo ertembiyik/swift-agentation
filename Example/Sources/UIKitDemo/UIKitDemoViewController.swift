@@ -325,7 +325,8 @@ final class UIKitDemoViewController: UIViewController {
     // MARK: - Actions
 
     @objc private func startAgentation() {
-        Agentation.shared.start { feedback in
+        let buttonFrame = floatingButton.convert(floatingButton.bounds, to: nil)
+        Agentation.shared.start(from: buttonFrame) { feedback in
             print("=== Agentation Feedback ===")
             print(feedback.toMarkdown())
             print("===========================")

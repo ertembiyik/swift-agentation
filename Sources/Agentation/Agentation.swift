@@ -24,7 +24,7 @@ public final class Agentation {
 
     private init() {}
 
-    public func start(onComplete: ((PageFeedback) -> Void)? = nil) {
+    public func start(from sourceFrame: CGRect? = nil, onComplete: ((PageFeedback) -> Void)? = nil) {
         if let existing = currentSession, existing.isActive {
             existing.stop()
         }
@@ -36,7 +36,7 @@ public final class Agentation {
         }
 
         currentSession = session
-        session.start()
+        session.start(from: sourceFrame)
     }
 
     public func stop() {
