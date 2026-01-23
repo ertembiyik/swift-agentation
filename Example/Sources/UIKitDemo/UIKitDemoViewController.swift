@@ -162,17 +162,23 @@ final class UIKitDemoViewController: UIViewController {
         return sc
     }()
 
-    // Agentation Trigger
-    private lazy var agentationButton: UIButton = {
-        var config = UIButton.Configuration.borderedProminent()
-        config.title = "Start Agentation"
-        config.image = UIImage(systemName: "sparkles")
-        config.imagePadding = 8
-        config.cornerStyle = .capsule
-        config.baseBackgroundColor = .systemPurple
-        let button = UIButton(configuration: config)
+    // Floating Agentation Button
+    private lazy var floatingButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+
+        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
+        button.setImage(UIImage(systemName: "sparkles", withConfiguration: config), for: .normal)
+        button.tintColor = .white
+        button.backgroundColor = .systemPurple
+        button.layer.cornerRadius = 28
+        button.layer.shadowColor = UIColor.systemPurple.cgColor
+        button.layer.shadowOpacity = 0.3
+        button.layer.shadowOffset = CGSize(width: 0, height: 4)
+        button.layer.shadowRadius = 8
+
         button.accessibilityLabel = "Start Agentation Capture"
-        button.accessibilityIdentifier = "agentationButton"
+        button.accessibilityIdentifier = "agentationFAB"
         button.addTarget(self, action: #selector(startAgentation), for: .touchUpInside)
         return button
     }()
@@ -191,6 +197,7 @@ final class UIKitDemoViewController: UIViewController {
     private func setupUI() {
         view.addSubview(scrollView)
         scrollView.addSubview(contentStack)
+        view.addSubview(floatingButton)
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -202,14 +209,18 @@ final class UIKitDemoViewController: UIViewController {
             contentStack.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 20),
             contentStack.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -20),
             contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -20),
-            contentStack.widthAnchor.constraint(equalTo: scrollView.widthAnchor, constant: -40)
+            contentStack.widthAnchor.constraint(equalTo: scrollView.widthAnchor, constant: -40),
+
+            floatingButton.widthAnchor.constraint(equalToConstant: 56),
+            floatingButton.heightAnchor.constraint(equalToConstant: 56),
+            floatingButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
+            floatingButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
         ])
 
         setupProfileSection()
         setupFormSection()
         setupButtonsSection()
         setupControlsSection()
-        setupAgentationSection()
     }
 
     private func setupProfileSection() {
@@ -287,26 +298,10 @@ final class UIKitDemoViewController: UIViewController {
         contentStack.addArrangedSubview(volumeSlider)
         contentStack.addArrangedSubview(themeLabel)
         contentStack.addArrangedSubview(segmentedControl)
-        contentStack.addArrangedSubview(makeDivider())
-    }
 
-    private func setupAgentationSection() {
-        let headerLabel = makeSectionHeader("Agentation")
-
-        let instructionLabel = UILabel()
-        instructionLabel.text = "Tap the button below or shake your device to start capturing UI feedback."
-        instructionLabel.font = .systemFont(ofSize: 14)
-        instructionLabel.textColor = .secondaryLabel
-        instructionLabel.numberOfLines = 0
-        instructionLabel.accessibilityIdentifier = "instructionLabel"
-
-        contentStack.addArrangedSubview(headerLabel)
-        contentStack.addArrangedSubview(instructionLabel)
-        contentStack.addArrangedSubview(agentationButton)
-
-        // Add some spacing at the bottom
+        // Add spacing at the bottom for the floating button
         let spacer = UIView()
-        spacer.heightAnchor.constraint(equalToConstant: 40).isActive = true
+        spacer.heightAnchor.constraint(equalToConstant: 80).isActive = true
         contentStack.addArrangedSubview(spacer)
     }
 

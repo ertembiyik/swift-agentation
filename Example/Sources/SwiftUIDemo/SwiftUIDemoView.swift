@@ -10,18 +10,39 @@ struct SwiftUIDemoView: View {
     @State private var notificationsEnabled = true
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                profileSection
-                formSection
-                buttonsSection
-                controlsSection
-                agentationSection
+        ZStack(alignment: .bottomTrailing) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    profileSection
+                    formSection
+                    buttonsSection
+                    controlsSection
+                }
+                .padding(20)
             }
-            .padding(20)
+
+            floatingButton
         }
         .navigationTitle("SwiftUI Demo")
         .agentationTag("SwiftUIDemoScreen")
+    }
+
+    // MARK: - Floating Button
+
+    private var floatingButton: some View {
+        Button(action: startAgentation) {
+            Image(systemName: "sparkles")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(.white)
+                .frame(width: 56, height: 56)
+                .background(Color.purple)
+                .clipShape(Circle())
+                .shadow(color: .purple.opacity(0.3), radius: 8, x: 0, y: 4)
+        }
+        .padding(.trailing, 20)
+        .padding(.bottom, 20)
+        .agentationTag("StartAgentationFAB")
     }
 
     // MARK: - Profile Section
@@ -77,8 +98,10 @@ struct SwiftUIDemoView: View {
 
             TextField("Email address", text: $email)
                 .textFieldStyle(.roundedBorder)
+                #if os(iOS)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.never)
+                #endif
                 .agentationTag("EmailInput")
 
             SecureField("Password", text: $password)
@@ -192,37 +215,6 @@ struct SwiftUIDemoView: View {
             Divider()
         }
         .agentationTag("ControlsSection")
-    }
-
-    // MARK: - Agentation Section
-
-    private var agentationSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Agentation")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .agentationTag("AgentationHeader")
-
-            Text("Tap the button below or shake your device to start capturing UI feedback.")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .agentationTag("InstructionText")
-
-            Button(action: startAgentation) {
-                HStack {
-                    Image(systemName: "sparkles")
-                    Text("Start Agentation")
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.purple)
-            .agentationTag("StartAgentationButton")
-
-            Spacer(minLength: 40)
-        }
-        .agentationTag("AgentationSection")
     }
 
     // MARK: - Actions
