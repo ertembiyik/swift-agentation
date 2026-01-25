@@ -25,7 +25,7 @@ let project = Project(
                 ]
             ]),
             sources: [
-                "Sources/MacApp/**",
+                "Sources/**",
                 "Sources/SwiftUIDemo/**",
                 "Sources/UIKitDemo/**"
             ],
@@ -44,7 +44,7 @@ let project = Project(
             infoPlist: .extendingDefault(with: [
                 "LSMinimumSystemVersion": "14.0"
             ]),
-            sources: ["Sources/MacApp/**", "Sources/SwiftUIDemo/**"],
+            sources: ["Sources/**", "Sources/SwiftUIDemo/**"],
             resources: ["Resources/**"],
             dependencies: [
                 .package(product: "Agentation", type: .runtime)

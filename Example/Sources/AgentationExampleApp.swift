@@ -45,6 +45,7 @@ struct AgentationExampleApp: App {
 
             NavigationStack {
                 UIKitDemoViewWrapper()
+                    .navigationTitle("UIKit Demo")
             }
             .tabItem {
                 Label("UIKit", systemImage: "hammer")
@@ -62,10 +63,10 @@ struct AgentationExampleApp: App {
 import UIKit
 
 struct UIKitDemoViewWrapper: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> UIKitDemoViewController {
-        UIKitDemoViewController()
+    func makeUIViewController(context: Context) -> UIViewController {
+        return UIKitDemoViewController()
     }
 
-    func updateUIViewController(_ uiViewController: UIKitDemoViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 }
 #endif

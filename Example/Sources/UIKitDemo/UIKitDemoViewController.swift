@@ -42,7 +42,7 @@ final class UIKitDemoViewController: UIViewController {
 
     private lazy var nameLabel: UILabel = {
         let label = UILabel()
-        label.text = "John Appleseed"
+        label.text = "Jane Appleseed"
         label.font = .systemFont(ofSize: 24, weight: .bold)
         label.accessibilityLabel = "User Name"
         label.accessibilityIdentifier = "nameLabel"
@@ -51,7 +51,7 @@ final class UIKitDemoViewController: UIViewController {
 
     private lazy var titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Senior iOS Engineer"
+        label.text = "Product Designer"
         label.font = .systemFont(ofSize: 16, weight: .regular)
         label.textColor = .secondaryLabel
         label.accessibilityLabel = "Job Title"
@@ -61,7 +61,7 @@ final class UIKitDemoViewController: UIViewController {
 
     private lazy var bioLabel: UILabel = {
         let label = UILabel()
-        label.text = "Building amazing iOS apps with Swift. Passionate about clean architecture and great user experiences."
+        label.text = "Creating beautiful and intuitive interfaces. I love working with SwiftUI and exploring new design patterns."
         label.font = .systemFont(ofSize: 14)
         label.textColor = .label
         label.numberOfLines = 0
@@ -113,6 +113,22 @@ final class UIKitDemoViewController: UIViewController {
         return label
     }()
 
+    private lazy var notificationsSwitch: UISwitch = {
+        let sw = UISwitch()
+        sw.isOn = true
+        sw.accessibilityLabel = "Enable Notifications Toggle"
+        sw.accessibilityIdentifier = "notificationsSwitch"
+        return sw
+    }()
+
+    private lazy var notificationsLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Enable notifications"
+        label.font = .systemFont(ofSize: 14)
+        label.accessibilityIdentifier = "notificationsLabel"
+        return label
+    }()
+
     // Buttons Section
     private lazy var primaryButton: UIButton = {
         var config = UIButton.Configuration.filled()
@@ -140,6 +156,36 @@ final class UIKitDemoViewController: UIViewController {
         let button = UIButton(configuration: config)
         button.accessibilityLabel = "Forgot Password Link"
         button.accessibilityIdentifier = "forgotPasswordLink"
+        return button
+    }()
+
+    private lazy var appleButton: UIButton = {
+        var config = UIButton.Configuration.tinted()
+        config.image = UIImage(systemName: "apple.logo")
+        config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 20)
+        let button = UIButton(configuration: config)
+        button.accessibilityLabel = "Sign in with Apple"
+        button.accessibilityIdentifier = "appleButton"
+        return button
+    }()
+
+    private lazy var googleButton: UIButton = {
+        var config = UIButton.Configuration.tinted()
+        config.image = UIImage(systemName: "g.circle.fill")
+        config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 20)
+        let button = UIButton(configuration: config)
+        button.accessibilityLabel = "Sign in with Google"
+        button.accessibilityIdentifier = "googleButton"
+        return button
+    }()
+
+    private lazy var facebookButton: UIButton = {
+        var config = UIButton.Configuration.tinted()
+        config.image = UIImage(systemName: "f.circle.fill")
+        config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 20)
+        let button = UIButton(configuration: config)
+        button.accessibilityLabel = "Sign in with Facebook"
+        button.accessibilityIdentifier = "facebookButton"
         return button
     }()
 
@@ -187,7 +233,6 @@ final class UIKitDemoViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "UIKit Demo"
         view.backgroundColor = .systemBackground
         setupUI()
     }
@@ -258,10 +303,16 @@ final class UIKitDemoViewController: UIViewController {
         rememberStack.spacing = 8
         rememberStack.accessibilityIdentifier = "rememberStack"
 
+        let notificationsStack = UIStackView(arrangedSubviews: [notificationsSwitch, notificationsLabel, UIView()])
+        notificationsStack.axis = .horizontal
+        notificationsStack.spacing = 8
+        notificationsStack.accessibilityIdentifier = "notificationsStack"
+
         contentStack.addArrangedSubview(headerLabel)
         contentStack.addArrangedSubview(emailTextField)
         contentStack.addArrangedSubview(passwordTextField)
         contentStack.addArrangedSubview(rememberStack)
+        contentStack.addArrangedSubview(notificationsStack)
         contentStack.addArrangedSubview(makeDivider())
     }
 
@@ -274,9 +325,15 @@ final class UIKitDemoViewController: UIViewController {
         buttonStack.distribution = .fillEqually
         buttonStack.accessibilityIdentifier = "buttonStack"
 
+        let socialStack = UIStackView(arrangedSubviews: [appleButton, googleButton, facebookButton, UIView()])
+        socialStack.axis = .horizontal
+        socialStack.spacing = 16
+        socialStack.accessibilityIdentifier = "socialStack"
+
         contentStack.addArrangedSubview(headerLabel)
         contentStack.addArrangedSubview(buttonStack)
         contentStack.addArrangedSubview(linkButton)
+        contentStack.addArrangedSubview(socialStack)
         contentStack.addArrangedSubview(makeDivider())
     }
 
@@ -298,6 +355,7 @@ final class UIKitDemoViewController: UIViewController {
         contentStack.addArrangedSubview(volumeSlider)
         contentStack.addArrangedSubview(themeLabel)
         contentStack.addArrangedSubview(segmentedControl)
+        contentStack.addArrangedSubview(makeDivider())
 
         // Add spacing at the bottom for the floating button
         let spacer = UIView()
