@@ -1,4 +1,3 @@
-#if os(iOS) || targetEnvironment(macCatalyst)
 import UIKit
 import SwiftUI
 
@@ -10,7 +9,7 @@ internal final class OverlayWindow: AgentationOverlayWindow {
     private var hoverHighlightView: ElementHighlightView?
     private var selectedHighlightViews: [UUID: ElementHighlightView] = [:]
 
-    private var controlBarHostingController: UIHostingController<ControlBarView>?
+    private var controlBarHostingController: UIHostingController<MorphingControlBar>?
     private var overlayViewController: OverlayViewController?
 
     private var cachedHierarchy: [ElementInfo] = []
@@ -46,7 +45,8 @@ internal final class OverlayWindow: AgentationOverlayWindow {
 
         if let controlBarView = controlBarHostingController?.view {
             let pointInControlBar = controlBarView.convert(point, from: self)
-            if controlBarView.bounds.contains(pointInControlBar) {
+            if let hitView = controlBarView.hitTest(pointInControlBar, with: event),
+               isInteractiveView(hitView) {
                 return super.hitTest(point, with: event)
             }
         }
@@ -56,6 +56,18 @@ internal final class OverlayWindow: AgentationOverlayWindow {
         }
 
         return super.hitTest(point, with: event)
+    }
+
+    private func isInteractiveView(_ view: UIView) -> Bool {
+        var current: UIView? = view
+        while let v = current {
+            let typeName = String(describing: type(of: v))
+            if typeName.contains("Button") || v.gestureRecognizers?.isEmpty == false {
+                return true
+            }
+            current = v.superview
+        }
+        return false
     }
 
     private func setupRootViewController() {
@@ -68,7 +80,19 @@ internal final class OverlayWindow: AgentationOverlayWindow {
     private func setupControlBar() {
         guard let session else { return }
 
-        let controlBar = ControlBarView(session: session)
+        let screenBounds = UIScreen.main.bounds
+        let sourceFrame = session.sourceFrame ?? CGRect(
+            x: screenBounds.width - 56 - 16,
+            y: screenBounds.height - 56 - 50,
+            width: 56,
+            height: 56
+        )
+
+        let controlBar = MorphingControlBar(
+            session: session,
+            sourceFrame: sourceFrame,
+            containerSize: screenBounds.size
+        )
         let hostingController = UIHostingController(rootView: controlBar)
         hostingController.view.backgroundColor = .clear
 
@@ -81,11 +105,10 @@ internal final class OverlayWindow: AgentationOverlayWindow {
 
         hostingController.view.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            hostingController.view.centerXAnchor.constraint(equalTo: rootVC.view.centerXAnchor),
-            hostingController.view.bottomAnchor.constraint(
-                equalTo: rootVC.view.safeAreaLayoutGuide.bottomAnchor,
-                constant: -20
-            )
+            hostingController.view.leadingAnchor.constraint(equalTo: rootVC.view.leadingAnchor),
+            hostingController.view.trailingAnchor.constraint(equalTo: rootVC.view.trailingAnchor),
+            hostingController.view.topAnchor.constraint(equalTo: rootVC.view.topAnchor),
+            hostingController.view.bottomAnchor.constraint(equalTo: rootVC.view.bottomAnchor)
         ])
     }
 
@@ -321,328 +344,3 @@ private final class OverlayViewController: UIViewController {
         }
     }
 }
-
-#elseif os(macOS)
-import AppKit
-import SwiftUI
-
-@MainActor
-internal final class OverlayPanel: AgentationOverlayPanel {
-
-    weak var session: AgentationSession?
-
-    private var hoverHighlightView: ElementHighlightView?
-    private var selectedHighlightViews: [UUID: ElementHighlightView] = [:]
-
-    private var controlBarHostingView: NSHostingView<ControlBarView>?
-    private var overlayContentView: OverlayContentView?
-
-    private var cachedHierarchy: [ElementInfo] = []
-    private var hoveredElement: ElementInfo?
-    private var trackingArea: NSTrackingArea?
-    private var currentPopover: NSPopover?
-
-    init(session: AgentationSession, contentRect: NSRect) {
-        self.session = session
-
-        super.init(
-            contentRect: contentRect,
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
-        )
-
-        self.level = .popUpMenu
-        self.isOpaque = false
-        self.backgroundColor = .clear
-        self.hasShadow = false
-        self.ignoresMouseEvents = false
-        self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        self.isMovableByWindowBackground = false
-
-        setupContentView()
-        setupControlBar()
-    }
-
-    private func setupContentView() {
-        let content = OverlayContentView(frame: contentView?.bounds ?? .zero)
-        content.overlay = self
-        content.autoresizingMask = [.width, .height]
-        contentView?.addSubview(content)
-        overlayContentView = content
-    }
-
-    private func setupControlBar() {
-        guard let session else { return }
-
-        let controlBar = ControlBarView(session: session)
-        let hostingView = NSHostingView(rootView: controlBar)
-
-        controlBarHostingView = hostingView
-
-        guard let container = contentView else { return }
-        container.addSubview(hostingView)
-
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            hostingView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -40)
-        ])
-    }
-
-    func refreshHierarchy() {
-        cachedHierarchy = HierarchyInspector.shared.captureHierarchy()
-        if let feedbackItems = session?.feedback.items {
-            updateSelectedHighlights(for: feedbackItems)
-        }
-    }
-
-    func showAnnotationPopup(for element: ElementInfo) {
-        guard let session else { return }
-
-        currentPopover?.close()
-        currentPopover = nil
-
-        let popupView = AnnotationPopupView(
-            element: element,
-            onSubmit: { [weak self] feedback in
-                self?.currentPopover?.close()
-                self?.currentPopover = nil
-                session.addFeedback(feedback, for: element)
-                self?.clearHoverHighlight()
-            },
-            onCancel: { [weak self] in
-                self?.currentPopover?.close()
-                self?.currentPopover = nil
-                self?.clearHoverHighlight()
-            }
-        )
-
-        let hostingController = NSHostingController(rootView: popupView)
-        hostingController.preferredContentSize = NSSize(width: 400, height: 300)
-
-        let popover = NSPopover()
-        popover.contentViewController = hostingController
-        popover.behavior = .transient
-        popover.animates = true
-
-        currentPopover = popover
-
-        if let highlight = hoverHighlightView, highlight.superview != nil {
-            popover.show(relativeTo: highlight.bounds, of: highlight, preferredEdge: .maxY)
-        } else if let content = overlayContentView {
-            let centerRect = NSRect(
-                x: content.bounds.midX - 100,
-                y: content.bounds.midY,
-                width: 200,
-                height: 1
-            )
-            popover.show(relativeTo: centerRect, of: content, preferredEdge: .maxY)
-        }
-    }
-
-    func updateHoverHighlight(at point: CGPoint) {
-        guard let content = overlayContentView else { return }
-
-        var foundElement: ElementInfo?
-        for root in cachedHierarchy {
-            if let element = root.elementAt(point: point) {
-                foundElement = element
-            }
-        }
-
-        if foundElement?.id == hoveredElement?.id {
-            return
-        }
-
-        hoveredElement = foundElement
-
-        hoverHighlightView?.removeFromSuperview()
-        hoverHighlightView = nil
-
-        guard let element = foundElement else { return }
-
-        let windowFrame = frame
-        let highlightFrame = CGRect(
-            x: element.frame.origin.x - windowFrame.origin.x,
-            y: element.frame.origin.y - windowFrame.origin.y,
-            width: element.frame.width,
-            height: element.frame.height
-        )
-
-        let highlight = ElementHighlightView(frame: highlightFrame, style: .hover)
-        highlight.elementInfo = element
-        content.addSubview(highlight, positioned: .below, relativeTo: controlBarHostingView)
-        hoverHighlightView = highlight
-    }
-
-    func clearHoverHighlight() {
-        hoveredElement = nil
-        hoverHighlightView?.removeFromSuperview()
-        hoverHighlightView = nil
-    }
-
-    func addSelectedHighlight(for element: ElementInfo) {
-        guard let content = overlayContentView else { return }
-
-        if selectedHighlightViews[element.id] != nil { return }
-
-        let windowFrame = frame
-        let highlightFrame = CGRect(
-            x: element.frame.origin.x - windowFrame.origin.x,
-            y: element.frame.origin.y - windowFrame.origin.y,
-            width: element.frame.width,
-            height: element.frame.height
-        )
-
-        let highlight = ElementHighlightView(frame: highlightFrame, style: .selected)
-        highlight.elementInfo = element
-
-        if let observedView = HierarchyInspector.shared.view(for: element.id) {
-            highlight.observeView(observedView)
-        }
-
-        content.addSubview(highlight, positioned: .below, relativeTo: controlBarHostingView)
-        selectedHighlightViews[element.id] = highlight
-    }
-
-    func removeSelectedHighlight(for elementId: UUID) {
-        selectedHighlightViews[elementId]?.stopObserving()
-        selectedHighlightViews[elementId]?.removeFromSuperview()
-        selectedHighlightViews.removeValue(forKey: elementId)
-    }
-
-    func clearAllHighlights() {
-        hoverHighlightView?.removeFromSuperview()
-        hoverHighlightView = nil
-        hoveredElement = nil
-
-        for (_, view) in selectedHighlightViews {
-            view.stopObserving()
-            view.removeFromSuperview()
-        }
-        selectedHighlightViews.removeAll()
-    }
-
-    func updateSelectedHighlights(for feedbackItems: [FeedbackItem]) {
-        let currentIds = Set(feedbackItems.map { $0.element.id })
-        let toRemove = selectedHighlightViews.keys.filter { !currentIds.contains($0) }
-        for id in toRemove {
-            removeSelectedHighlight(for: id)
-        }
-
-        for item in feedbackItems {
-            addSelectedHighlight(for: item.element)
-        }
-    }
-
-    func prepareForRemoval() {
-        currentPopover?.close()
-        currentPopover = nil
-
-        controlBarHostingView?.removeFromSuperview()
-        controlBarHostingView = nil
-
-        clearAllHighlights()
-
-        overlayContentView?.removeFromSuperview()
-        overlayContentView = nil
-    }
-
-    func handleClick(at point: CGPoint) {
-        guard let session, !session.isPaused else { return }
-
-        if let element = hoveredElement {
-            showAnnotationPopup(for: element)
-        }
-    }
-
-    func isPointInControlBar(_ point: NSPoint, from view: NSView) -> Bool {
-        guard let controlBar = controlBarHostingView else { return false }
-        let pointInControlBar = controlBar.convert(point, from: view)
-        return controlBar.bounds.contains(pointInControlBar)
-    }
-}
-
-@MainActor
-private final class OverlayContentView: NSView {
-    weak var overlay: OverlayPanel?
-    private var trackingArea: NSTrackingArea?
-
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        wantsLayer = true
-        layer?.backgroundColor = NSColor.clear.cgColor
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-
-        if let existing = trackingArea {
-            removeTrackingArea(existing)
-        }
-
-        trackingArea = NSTrackingArea(
-            rect: bounds,
-            options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways],
-            owner: self,
-            userInfo: nil
-        )
-        addTrackingArea(trackingArea!)
-    }
-
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        overlay?.refreshHierarchy()
-    }
-
-    override func mouseDown(with event: NSEvent) {
-        overlay?.refreshHierarchy()
-        let point = convert(event.locationInWindow, from: nil)
-        overlay?.updateHoverHighlight(at: convertToScreen(point))
-        overlay?.handleClick(at: convertToScreen(point))
-    }
-
-    override func mouseEntered(with event: NSEvent) {
-        overlay?.refreshHierarchy()
-    }
-
-    override func mouseMoved(with event: NSEvent) {
-        guard let session = overlay?.session, !session.isPaused else { return }
-        let point = convert(event.locationInWindow, from: nil)
-        overlay?.updateHoverHighlight(at: convertToScreen(point))
-    }
-
-    override func mouseExited(with event: NSEvent) {
-        overlay?.clearHoverHighlight()
-    }
-
-    private func convertToScreen(_ point: CGPoint) -> CGPoint {
-        guard let window = overlay else { return point }
-        let windowFrame = window.frame
-        return CGPoint(
-            x: windowFrame.origin.x + point.x,
-            y: windowFrame.origin.y + point.y
-        )
-    }
-
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        guard let session = overlay?.session else { return nil }
-
-        if overlay?.isPointInControlBar(point, from: self) == true {
-            return super.hitTest(point)
-        }
-
-        if session.isPaused {
-            return nil
-        }
-
-        return super.hitTest(point)
-    }
-}
-
-#endif

@@ -1,12 +1,7 @@
-#if os(iOS)
 import UIKit
+
 public typealias PlatformView = UIView
 public typealias PlatformWindow = UIWindow
-#elseif os(macOS)
-import AppKit
-public typealias PlatformView = NSView
-public typealias PlatformWindow = NSWindow
-#endif
 
 @MainActor
 public final class HierarchyInspector {
@@ -21,7 +16,6 @@ public final class HierarchyInspector {
         viewLookup.removeAll()
         var elements: [ElementInfo] = []
 
-        #if os(iOS)
         let allScenes = UIApplication.shared.connectedScenes
         for scene in allScenes {
             guard let windowScene = scene as? UIWindowScene else { continue }
@@ -39,22 +33,6 @@ public final class HierarchyInspector {
                 elements.append(windowElement)
             }
         }
-        #elseif os(macOS)
-        for window in NSApplication.shared.windows {
-            if window is AgentationOverlayPanel {
-                continue
-            }
-
-            guard let contentView = window.contentView else { continue }
-
-            let windowElement = inspectView(
-                contentView,
-                parentPath: "",
-                depth: 0
-            )
-            elements.append(windowElement)
-        }
-        #endif
 
         return elements
     }
@@ -64,22 +42,13 @@ public final class HierarchyInspector {
     }
 
     public func currentPageName() -> String {
-        #if os(iOS)
         guard let topViewController = topViewController() else {
             return "Unknown"
         }
         return String(describing: type(of: topViewController))
-        #elseif os(macOS)
-        guard let keyWindow = NSApplication.shared.keyWindow,
-              let windowController = keyWindow.windowController else {
-            return NSApplication.shared.keyWindow?.title ?? "Unknown"
-        }
-        return String(describing: type(of: windowController))
-        #endif
     }
 
     public func viewportSize() -> CGSize {
-        #if os(iOS)
         guard let window = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
             .first?.windows
@@ -88,12 +57,6 @@ public final class HierarchyInspector {
             return .zero
         }
         return window.bounds.size
-        #elseif os(macOS)
-        guard let window = NSApplication.shared.windows.first(where: { !($0 is AgentationOverlayPanel) }) else {
-            return .zero
-        }
-        return window.contentView?.bounds.size ?? window.frame.size
-        #endif
     }
 
     public func printHierarchy() -> String {
@@ -101,7 +64,6 @@ public final class HierarchyInspector {
 
         let selector = NSSelectorFromString("_subtreeDescription")
 
-        #if os(iOS)
         let allScenes = UIApplication.shared.connectedScenes
 
         for scene in allScenes {
@@ -116,21 +78,10 @@ public final class HierarchyInspector {
                 }
             }
         }
-        #elseif os(macOS)
-        for window in NSApplication.shared.windows where !(window is AgentationOverlayPanel) {
-            if let contentView = window.contentView, contentView.responds(to: selector) {
-                let result = contentView.perform(selector)
-                if let description = result?.takeUnretainedValue() as? String {
-                    output += description + "\n"
-                }
-            }
-        }
-        #endif
 
         return output
     }
 
-    #if os(iOS)
     public func printViewControllerHierarchy() -> String {
         let selector = NSSelectorFromString("_printHierarchy")
 
@@ -173,7 +124,6 @@ public final class HierarchyInspector {
 
         return baseVC
     }
-    #endif
 
     private func inspectView(
         _ view: PlatformView,
@@ -185,7 +135,6 @@ public final class HierarchyInspector {
         let pathComponent = buildPathComponent(for: view)
         let currentPath = parentPath.isEmpty ? pathComponent : "\(parentPath) > \(pathComponent)"
 
-        #if os(iOS)
         let screenFrame = view.convert(view.bounds, to: nil)
         let accessibilityLabel = view.accessibilityLabel
         let accessibilityIdentifier = view.accessibilityIdentifier
@@ -194,28 +143,6 @@ public final class HierarchyInspector {
         let subviews = view.subviews
         let isHidden = view.isHidden
         let alpha = view.alpha
-        #elseif os(macOS)
-        let screenFrame: CGRect
-        if let window = view.window {
-            let viewFrameInWindow = view.convert(view.bounds, to: nil)
-            let windowFrameOnScreen = window.frame
-            screenFrame = CGRect(
-                x: windowFrameOnScreen.origin.x + viewFrameInWindow.origin.x,
-                y: windowFrameOnScreen.origin.y + viewFrameInWindow.origin.y,
-                width: viewFrameInWindow.width,
-                height: viewFrameInWindow.height
-            )
-        } else {
-            screenFrame = view.frame
-        }
-        let accessibilityLabel = view.accessibilityLabel()
-        let accessibilityIdentifier = view.accessibilityIdentifier()
-        let accessibilityHint = view.accessibilityHelp()
-        let accessibilityValue = view.accessibilityValue() as? String
-        let subviews = view.subviews
-        let isHidden = view.isHidden
-        let alpha = view.alphaValue
-        #endif
 
         let agentationTag = AgentationTagRegistry.shared.tag(for: view)
 
@@ -254,16 +181,8 @@ public final class HierarchyInspector {
             return "[\(tag)]"
         }
 
-        #if os(iOS)
         let identifier = view.accessibilityIdentifier
         let label = view.accessibilityLabel
-        #elseif os(macOS)
-        let identifier: String? = {
-            let id = view.accessibilityIdentifier()
-            return id.isEmpty ? nil : id
-        }()
-        let label: String? = view.accessibilityLabel()
-        #endif
 
         if let identifier, !identifier.isEmpty {
             return "#\(identifier)"
@@ -293,11 +212,7 @@ struct WeakViewRef {
     weak var view: PlatformView?
 }
 
-#if os(iOS)
 internal class AgentationOverlayWindow: UIWindow {}
-#elseif os(macOS)
-internal class AgentationOverlayPanel: NSPanel {}
-#endif
 
 @MainActor
 public final class AgentationTagRegistry {

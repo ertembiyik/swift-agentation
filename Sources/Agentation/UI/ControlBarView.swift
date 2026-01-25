@@ -1,11 +1,140 @@
-#if os(iOS) || targetEnvironment(macCatalyst) || os(macOS)
 import SwiftUI
-
-#if os(iOS) || targetEnvironment(macCatalyst)
 import UIKit
-#elseif os(macOS)
-import AppKit
-#endif
+
+@MainActor
+struct MorphingControlBar: View {
+    @Bindable var session: AgentationSession
+    let sourceFrame: CGRect
+    let containerSize: CGSize
+
+    @State private var isExpanded = false
+    @State private var showingSettings = false
+    @State private var showingPreview = false
+    @State private var copiedFeedback = false
+
+    @Namespace private var morphNamespace
+
+    private let fabSize: CGFloat = 56
+    private let controlBarHeight: CGFloat = 60
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                if isExpanded {
+                    expandedView
+                        .position(expandedPosition(in: geometry))
+                } else {
+                    collapsedView
+                        .position(collapsedPosition(in: geometry))
+                }
+            }
+            .onAppear {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                    isExpanded = true
+                }
+            }
+        }
+        .sheet(isPresented: $showingPreview) {
+            PreviewSheet(session: session)
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsSheet(session: session)
+        }
+    }
+
+    private var collapsedView: some View {
+        Image(systemName: "hand.tap.fill")
+            .font(.system(size: 22, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: fabSize, height: fabSize)
+            .background(.ultraThinMaterial, in: Circle())
+            .matchedGeometryEffect(id: "controlShape", in: morphNamespace)
+            .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+    }
+
+    private var expandedView: some View {
+        HStack(spacing: 0) {
+            ControlButton(
+                icon: session.isPaused ? "play.fill" : "pause.fill",
+                action: { session.togglePause() }
+            )
+
+            Divider()
+                .frame(height: 24)
+                .background(Color.white.opacity(0.2))
+
+            ControlButton(
+                icon: "eye",
+                action: { showingPreview = true }
+            )
+
+            ControlButton(
+                icon: copiedFeedback ? "checkmark" : "doc.on.doc",
+                action: { copyFeedback() }
+            )
+
+            ControlButton(
+                icon: "trash",
+                action: { session.clearFeedback() }
+            )
+            .disabled(session.feedback.items.isEmpty)
+
+            Divider()
+                .frame(height: 24)
+                .background(Color.white.opacity(0.2))
+
+            ControlButton(
+                icon: "gearshape",
+                action: { showingSettings = true }
+            )
+
+            Divider()
+                .frame(height: 24)
+                .background(Color.white.opacity(0.2))
+
+            ControlButton(
+                icon: "xmark",
+                action: { session.stop() }
+            )
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: Capsule())
+        .matchedGeometryEffect(id: "controlShape", in: morphNamespace)
+        .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+    }
+
+    private func collapsedPosition(in geometry: GeometryProxy) -> CGPoint {
+        CGPoint(
+            x: sourceFrame.midX,
+            y: sourceFrame.midY
+        )
+    }
+
+    private func expandedPosition(in geometry: GeometryProxy) -> CGPoint {
+        let safeAreaBottom: CGFloat = 34
+        return CGPoint(
+            x: geometry.size.width / 2,
+            y: geometry.size.height - controlBarHeight / 2 - safeAreaBottom - 20
+        )
+    }
+
+    private func copyFeedback() {
+        let markdown = session.feedback.toMarkdown()
+        UIPasteboard.general.string = markdown
+
+        withAnimation {
+            copiedFeedback = true
+        }
+
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            withAnimation {
+                copiedFeedback = false
+            }
+        }
+    }
+}
 
 @MainActor
 struct ControlBarView: View {
@@ -74,7 +203,7 @@ struct ControlBarView: View {
 
     private func copyFeedback() {
         let markdown = session.feedback.toMarkdown()
-        copyToClipboard(markdown)
+        UIPasteboard.general.string = markdown
 
         withAnimation {
             copiedFeedback = true
@@ -86,15 +215,6 @@ struct ControlBarView: View {
                 copiedFeedback = false
             }
         }
-    }
-
-    private func copyToClipboard(_ string: String) {
-        #if os(iOS) || targetEnvironment(macCatalyst)
-        UIPasteboard.general.string = string
-        #elseif os(macOS)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(string, forType: .string)
-        #endif
     }
 }
 
@@ -153,15 +273,11 @@ private struct PreviewSheet: View {
                             }
                         }
                     }
-                    #if os(iOS) || targetEnvironment(macCatalyst)
                     .listStyle(.insetGrouped)
-                    #endif
                 }
             }
             .navigationTitle("Feedback Preview")
-            #if os(iOS) || targetEnvironment(macCatalyst)
             .navigationBarTitleDisplayMode(.inline)
-            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
@@ -173,19 +289,11 @@ private struct PreviewSheet: View {
                 }
             }
         }
-        #if os(macOS)
-        .frame(minWidth: 400, minHeight: 300)
-        #endif
     }
 
     private func handleCopy() {
         let markdown = session.feedback.toMarkdown()
-        #if os(iOS) || targetEnvironment(macCatalyst)
         UIPasteboard.general.string = markdown
-        #elseif os(macOS)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(markdown, forType: .string)
-        #endif
     }
 }
 
@@ -222,7 +330,6 @@ private struct FeedbackItemRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 8))
         }
-        #if os(iOS) || targetEnvironment(macCatalyst)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
                 onDelete()
@@ -230,7 +337,6 @@ private struct FeedbackItemRow: View {
                 Label("Delete", systemImage: "trash")
             }
         }
-        #endif
         .contextMenu {
             Button(role: .destructive, action: onDelete) {
                 Label("Delete", systemImage: "trash")
@@ -263,27 +369,18 @@ private struct SettingsSheet: View {
                 }
             }
             .navigationTitle("Settings")
-            #if os(iOS) || targetEnvironment(macCatalyst)
             .navigationBarTitleDisplayMode(.inline)
-            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
             }
         }
-        #if os(macOS)
-        .frame(minWidth: 350, minHeight: 250)
-        #endif
     }
 }
 
-#if os(iOS) || targetEnvironment(macCatalyst)
 #Preview("Control Bar") {
     ControlBarView(session: AgentationSession())
         .padding()
         .background(Color.gray.opacity(0.3))
 }
-#endif
-
-#endif

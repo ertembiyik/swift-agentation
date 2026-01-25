@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Agentation
 
 @main
@@ -11,56 +12,25 @@ struct AgentationExampleApp: App {
 
     var body: some Scene {
         WindowGroup {
-            contentView
-                #if os(macOS)
-                .frame(minWidth: 400, minHeight: 600)
-                #endif
-        }
-        #if os(macOS)
-        .commands {
-            CommandGroup(after: .appInfo) {
-                Button("Start Agentation") {
-                    Agentation.shared.start { feedback in
-                        print("=== Agentation Feedback ===")
-                        print(feedback.toMarkdown())
-                        print("===========================")
-                    }
+            TabView {
+                NavigationStack {
+                    SwiftUIDemoView()
                 }
-                .keyboardShortcut("a", modifiers: [.command, .shift])
-            }
-        }
-        #endif
-    }
+                .tabItem {
+                    Label("SwiftUI", systemImage: "swift")
+                }
 
-    @ViewBuilder
-    private var contentView: some View {
-        #if os(iOS)
-        TabView {
-            NavigationStack {
-                SwiftUIDemoView()
-            }
-            .tabItem {
-                Label("SwiftUI", systemImage: "swift")
-            }
-
-            NavigationStack {
-                UIKitDemoViewWrapper()
-                    .navigationTitle("UIKit Demo")
-            }
-            .tabItem {
-                Label("UIKit", systemImage: "hammer")
+                NavigationStack {
+                    UIKitDemoViewWrapper()
+                        .navigationTitle("UIKit Demo")
+                }
+                .tabItem {
+                    Label("UIKit", systemImage: "hammer")
+                }
             }
         }
-        #else
-        NavigationStack {
-            SwiftUIDemoView()
-        }
-        #endif
     }
 }
-
-#if os(iOS)
-import UIKit
 
 struct UIKitDemoViewWrapper: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
@@ -69,4 +39,3 @@ struct UIKitDemoViewWrapper: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 }
-#endif

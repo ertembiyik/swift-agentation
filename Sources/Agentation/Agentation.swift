@@ -1,8 +1,4 @@
-#if os(iOS) || targetEnvironment(macCatalyst)
 import UIKit
-#elseif os(macOS)
-import AppKit
-#endif
 import SwiftUI
 
 @MainActor
@@ -16,21 +12,19 @@ public final class Agentation {
         currentSession?.isActive ?? false
     }
 
-    #if os(iOS) || targetEnvironment(macCatalyst)
     private var floatingButtonWindow: FloatingButtonWindow?
-    #elseif os(macOS)
-    private var floatingButtonPanel: FloatingButtonPanel?
-    #endif
 
     private init() {}
 
-    public func start(onComplete: ((PageFeedback) -> Void)? = nil) {
+    public func start(from sourceFrame: CGRect? = nil, onComplete: ((PageFeedback) -> Void)? = nil) {
         if let existing = currentSession, existing.isActive {
             existing.stop()
         }
 
         let session = AgentationSession()
+        session.sourceFrame = sourceFrame
         session.onComplete = { [weak self] feedback in
+            self?.showFloatingButtonAfterStop()
             self?.currentSession = nil
             onComplete?(feedback)
         }
@@ -42,6 +36,10 @@ public final class Agentation {
     public func stop() {
         currentSession?.stop()
         currentSession = nil
+    }
+
+    private func showFloatingButtonAfterStop() {
+        floatingButtonWindow?.isHidden = false
     }
 
     public func togglePause() {
@@ -68,42 +66,29 @@ public final class Agentation {
         HierarchyInspector.shared.printHierarchy()
     }
 
-    #if os(iOS) || targetEnvironment(macCatalyst)
     public func viewControllerHierarchy() -> String {
         HierarchyInspector.shared.printViewControllerHierarchy()
     }
-    #endif
 
     public func showFloatingButton() {
-        #if os(iOS) || targetEnvironment(macCatalyst)
         guard floatingButtonWindow == nil else { return }
         let window = FloatingButtonWindow(onTap: toggleAgentation)
         window.isHidden = false
         floatingButtonWindow = window
-        #elseif os(macOS)
-        guard floatingButtonPanel == nil else { return }
-        let panel = FloatingButtonPanel(onTap: toggleAgentation)
-        panel.orderFront(nil)
-        floatingButtonPanel = panel
-        #endif
     }
 
     public func hideFloatingButton() {
-        #if os(iOS) || targetEnvironment(macCatalyst)
         floatingButtonWindow?.isHidden = true
         floatingButtonWindow = nil
-        #elseif os(macOS)
-        floatingButtonPanel?.orderOut(nil)
-        floatingButtonPanel?.close()
-        floatingButtonPanel = nil
-        #endif
     }
 
     private func toggleAgentation() {
         if isActive {
             stop()
         } else {
-            start()
+            let sourceFrame = floatingButtonWindow?.buttonFrame
+            floatingButtonWindow?.isHidden = true
+            start(from: sourceFrame)
         }
     }
 
@@ -132,15 +117,9 @@ private func formatFeedback(_ feedback: PageFeedback, format: AgentationSession.
 }
 
 private func copyToClipboard(_ text: String) {
-    #if os(iOS) || targetEnvironment(macCatalyst)
     UIPasteboard.general.string = text
-    #elseif os(macOS)
-    NSPasteboard.general.clearContents()
-    NSPasteboard.general.setString(text, forType: .string)
-    #endif
 }
 
-#if os(iOS) || targetEnvironment(macCatalyst)
 #if DEBUG
 extension Agentation {
 
@@ -189,6 +168,7 @@ extension UIWindow {
 private final class FloatingButtonWindow: UIWindow {
 
     private let onTap: () -> Void
+    private var panGesture: UIPanGestureRecognizer?
 
     init(onTap: @escaping () -> Void) {
         self.onTap = onTap
@@ -213,6 +193,7 @@ private final class FloatingButtonWindow: UIWindow {
         self.rootViewController = hostingController
 
         positionWindow()
+        setupPanGesture()
     }
 
     required init?(coder: NSCoder) {
@@ -232,56 +213,39 @@ private final class FloatingButtonWindow: UIWindow {
             height: 56
         )
     }
-}
 
-#elseif os(macOS)
-
-@MainActor
-private final class FloatingButtonPanel: NSPanel {
-
-    private let onTap: () -> Void
-
-    init(onTap: @escaping () -> Void) {
-        self.onTap = onTap
-
-        let buttonSize: CGFloat = 56
-
-        super.init(
-            contentRect: NSRect(x: 0, y: 0, width: buttonSize, height: buttonSize),
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
-        )
-
-        self.level = .floating
-        self.isOpaque = false
-        self.backgroundColor = .clear
-        self.hasShadow = false
-        self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        self.isMovableByWindowBackground = true
-
-        let buttonView = FloatingButtonView(onTap: onTap)
-        let hostingView = NSHostingView(rootView: buttonView)
-        self.contentView = hostingView
-
-        positionPanel()
+    private func setupPanGesture() {
+        let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+        self.addGestureRecognizer(pan)
+        self.panGesture = pan
     }
 
-    private func positionPanel() {
-        guard let screen = NSScreen.main else { return }
+    @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
+        guard let windowScene = self.windowScene else { return }
 
-        let screenFrame = screen.visibleFrame
-        let buttonSize: CGFloat = 56
-        let margin: CGFloat = 16
+        let translation = gesture.translation(in: self)
+        let screenBounds = windowScene.screen.bounds
+        let safeAreaInsets = windowScene.windows.first?.safeAreaInsets ?? .zero
 
-        self.setFrameOrigin(NSPoint(
-            x: screenFrame.maxX - buttonSize - margin,
-            y: screenFrame.minY + margin
-        ))
+        var newX = self.frame.origin.x + translation.x
+        var newY = self.frame.origin.y + translation.y
+
+        let minX: CGFloat = 8
+        let maxX = screenBounds.width - 56 - 8
+        let minY = safeAreaInsets.top + 8
+        let maxY = screenBounds.height - 56 - safeAreaInsets.bottom - 8
+
+        newX = max(minX, min(maxX, newX))
+        newY = max(minY, min(maxY, newY))
+
+        self.frame.origin = CGPoint(x: newX, y: newY)
+        gesture.setTranslation(.zero, in: self)
+    }
+
+    var buttonFrame: CGRect {
+        return self.frame
     }
 }
-
-#endif
 
 private struct FloatingButtonView: View {
     let onTap: () -> Void

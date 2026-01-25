@@ -1,8 +1,4 @@
-#if os(iOS) || targetEnvironment(macCatalyst)
 import UIKit
-#elseif os(macOS)
-import AppKit
-#endif
 import Observation
 
 @MainActor
@@ -21,15 +17,12 @@ public final class AgentationSession {
     public var outputFormat: OutputFormat = .markdown
     public var includeHiddenElements: Bool = false
     public var includeSystemViews: Bool = false
+    public var sourceFrame: CGRect?
 
     public var onComplete: ((PageFeedback) -> Void)?
     public var onCopy: ((String) -> Void)?
 
-    #if os(iOS) || targetEnvironment(macCatalyst)
     private var overlayWindow: OverlayWindow?
-    #elseif os(macOS)
-    private var overlayPanel: OverlayPanel?
-    #endif
 
     public init() {
         let inspector = HierarchyInspector.shared
@@ -48,22 +41,12 @@ public final class AgentationSession {
             viewportSize: inspector.viewportSize()
         )
 
-        #if os(iOS) || targetEnvironment(macCatalyst)
         dismissKeyboardGlobally()
 
         let overlay = OverlayWindow(session: self)
         overlay.isHidden = false
         overlay.makeKeyAndVisible()
         overlayWindow = overlay
-        #elseif os(macOS)
-        guard let mainWindow = NSApplication.shared.windows.first(where: { !($0 is AgentationOverlayPanel) }) else {
-            return
-        }
-
-        let overlay = OverlayPanel(session: self, contentRect: mainWindow.frame)
-        overlay.orderFront(nil)
-        overlayPanel = overlay
-        #endif
 
         isActive = true
         isPaused = false
@@ -72,7 +55,6 @@ public final class AgentationSession {
     public func stop() {
         guard isActive else { return }
 
-        #if os(iOS) || targetEnvironment(macCatalyst)
         overlayWindow?.endEditing(true)
         overlayWindow?.prepareForRemoval()
         overlayWindow?.isHidden = true
@@ -80,12 +62,6 @@ public final class AgentationSession {
         overlayWindow?.windowScene = nil
         overlayWindow = nil
         restoreKeyWindowToApp()
-        #elseif os(macOS)
-        overlayPanel?.prepareForRemoval()
-        overlayPanel?.orderOut(nil)
-        overlayPanel?.close()
-        overlayPanel = nil
-        #endif
 
         isActive = false
         isPaused = false
@@ -128,11 +104,7 @@ public final class AgentationSession {
     }
 
     public func refreshHierarchy() {
-        #if os(iOS) || targetEnvironment(macCatalyst)
         overlayWindow?.refreshHierarchy()
-        #elseif os(macOS)
-        overlayPanel?.refreshHierarchy()
-        #endif
     }
 
     private func formatOutput() -> String {
@@ -149,39 +121,21 @@ public final class AgentationSession {
     }
 
     private func copyToClipboard(_ text: String) {
-        #if os(iOS) || targetEnvironment(macCatalyst)
         UIPasteboard.general.string = text
-        #elseif os(macOS)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
-        #endif
     }
 
     private func clearHoverHighlight() {
-        #if os(iOS) || targetEnvironment(macCatalyst)
         overlayWindow?.clearHoverHighlight()
-        #elseif os(macOS)
-        overlayPanel?.clearHoverHighlight()
-        #endif
     }
 
     private func updateSelectedHighlights() {
-        #if os(iOS) || targetEnvironment(macCatalyst)
         overlayWindow?.updateSelectedHighlights(for: feedback.items)
-        #elseif os(macOS)
-        overlayPanel?.updateSelectedHighlights(for: feedback.items)
-        #endif
     }
 
     private func clearAllHighlights() {
-        #if os(iOS) || targetEnvironment(macCatalyst)
         overlayWindow?.clearAllHighlights()
-        #elseif os(macOS)
-        overlayPanel?.clearAllHighlights()
-        #endif
     }
 
-    #if os(iOS) || targetEnvironment(macCatalyst)
     private func dismissKeyboardGlobally() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
@@ -198,5 +152,4 @@ public final class AgentationSession {
             }
         }
     }
-    #endif
 }

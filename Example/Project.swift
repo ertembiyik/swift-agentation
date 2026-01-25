@@ -33,22 +33,6 @@ let project = Project(
             dependencies: [
                 .package(product: "Agentation", type: .runtime)
             ]
-        ),
-        // macOS App (SwiftUI only)
-        .target(
-            name: "AgentationExampleMac",
-            destinations: [.mac],
-            product: .app,
-            bundleId: "com.agentation.example.mac",
-            deploymentTargets: .macOS("14.0"),
-            infoPlist: .extendingDefault(with: [
-                "LSMinimumSystemVersion": "14.0"
-            ]),
-            sources: ["Sources/**", "Sources/SwiftUIDemo/**"],
-            resources: ["Resources/**"],
-            dependencies: [
-                .package(product: "Agentation", type: .runtime)
-            ]
         )
     ]
 )
