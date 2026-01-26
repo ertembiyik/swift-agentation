@@ -20,8 +20,8 @@ public struct PageFeedback: Sendable {
     }
 
     public func toMarkdown() -> String {
-        var output = "## Screen Feedback: \(pageName)\n"
-        output += "**Frame:** \(Int(viewportSize.width))×\(Int(viewportSize.height))\n\n"
+        var output = "## Page Feedback: \(pageName)\n"
+        output += "**Viewport:** \(Int(viewportSize.width))×\(Int(viewportSize.height))\n\n"
 
         for (index, item) in items.enumerated() {
             let number = index + 1
@@ -55,11 +55,11 @@ public struct PageFeedback: Sendable {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
 
         struct Output: Encodable {
-            let screen: String
-            let frame: ScreenFrameOutput
+            let page: String
+            let viewport: ViewportOutput
             let items: [ItemOutput]
 
-            struct ScreenFrameOutput: Encodable {
+            struct ViewportOutput: Encodable {
                 let width: Int
                 let height: Int
             }
@@ -82,8 +82,8 @@ public struct PageFeedback: Sendable {
         }
 
         let output = Output(
-            screen: pageName,
-            frame: Output.ScreenFrameOutput(
+            page: pageName,
+            viewport: Output.ViewportOutput(
                 width: Int(viewportSize.width),
                 height: Int(viewportSize.height)
             ),

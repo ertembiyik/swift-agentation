@@ -1,18 +1,13 @@
-#if os(iOS) || targetEnvironment(macCatalyst) || os(macOS)
 import SwiftUI
 
 extension View {
     @ViewBuilder
     func universalGlassButtonStyle() -> some View {
-        #if os(iOS) || targetEnvironment(macCatalyst)
         if #available(iOS 26.0, macCatalyst 26.0, *) {
             self.buttonStyle(.glassProminent)
         } else {
             self.buttonStyle(.borderedProminent)
         }
-        #elseif os(macOS)
-        self.buttonStyle(.borderedProminent)
-        #endif
     }
 }
 
@@ -31,7 +26,6 @@ struct AnnotationPopupView: View {
     }
 
     var body: some View {
-        #if os(iOS) || targetEnvironment(macCatalyst)
         NavigationStack {
             popupContent
                 .navigationTitle("Add Feedback")
@@ -53,28 +47,6 @@ struct AnnotationPopupView: View {
             try? await Task.sleep(for: .milliseconds(400))
             isFocused = true
         }
-        #elseif os(macOS)
-        VStack(spacing: 0) {
-            HStack {
-                Text("Add Feedback")
-                    .font(.headline)
-                Spacer()
-                Button(action: handleCancel) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding()
-
-            popupContent
-        }
-        .frame(width: 400, height: 300)
-        .task {
-            try? await Task.sleep(for: .milliseconds(400))
-            isFocused = true
-        }
-        #endif
     }
 
     private var popupContent: some View {
@@ -136,11 +108,9 @@ struct AnnotationPopupView: View {
             .universalGlassButtonStyle()
             .disabled(trimmedFeedback.isEmpty)
             .padding(.horizontal, 20)
-            #if os(iOS) || targetEnvironment(macCatalyst)
             .containerRelativeFrame(.horizontal, alignment: .center) { len, _ in
                 len
             }
-            #endif
         }
         .padding(.vertical, 20)
     }
@@ -157,7 +127,6 @@ struct AnnotationPopupView: View {
     }
 }
 
-#if os(iOS) || targetEnvironment(macCatalyst)
 #Preview("Annotation Popup") {
     Color.clear
         .sheet(isPresented: .constant(true)) {
@@ -174,6 +143,3 @@ struct AnnotationPopupView: View {
             )
         }
 }
-#endif
-
-#endif

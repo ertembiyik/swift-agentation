@@ -21,7 +21,22 @@ Or in Xcode: File → Add Package Dependencies → enter the repository URL.
 ### SwiftUI
 
 ```swift
+import SwiftUI
 import Agentation
+
+@main
+struct MyApp: App {
+    init() {
+        // Install the Agentation toolbar (auto-installs when scene is available)
+        Agentation.shared.install()
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
 
 struct ContentView: View {
     var body: some View {
@@ -34,15 +49,24 @@ struct ContentView: View {
         }
     }
 }
-
-// Start capture anywhere
-Agentation.shared.start()
 ```
+
+The floating toolbar appears automatically. Tap the button to start a capture session.
 
 ### UIKit
 
 ```swift
+import UIKit
 import Agentation
+
+@main
+class AppDelegate: UIResponder, UIApplicationDelegate {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // Install the Agentation toolbar
+        Agentation.shared.install()
+        return true
+    }
+}
 
 class ViewController: UIViewController {
     override func viewDidLoad() {
@@ -51,16 +75,10 @@ class ViewController: UIViewController {
         button.accessibilityLabel = "Sign In"
         button.accessibilityIdentifier = "signInButton"
     }
-
-    @IBAction func startCapture() {
-        Agentation.shared.start { feedback in
-            print(feedback.toMarkdown())
-        }
-    }
 }
 ```
 
-The toolbar appears in the bottom-right corner. Tap any element to annotate it.
+The floating toolbar appears automatically. Tap the collapsed button to start capturing, then tap any element to annotate it.
 
 ## Features
 
@@ -182,24 +200,30 @@ Captured feedback exports as Markdown (for humans and agents) or JSON (for tooli
 ## API
 
 ```swift
-// Start/stop
-Agentation.shared.start()
-Agentation.shared.start { feedback in /* ... */ }
-Agentation.shared.stop()
+// Installation (call once at app launch)
+Agentation.shared.install()         // Auto-installs when scene is available
+Agentation.shared.install(in: scene) // Install in specific scene
+
+// Toolbar visibility
+Agentation.shared.showToolbar()     // Show if hidden
+Agentation.shared.hideToolbar()     // Hide temporarily
 
 // Session control
-Agentation.shared.togglePause()
-Agentation.shared.clearFeedback()
-Agentation.shared.copyFeedback()
+Agentation.shared.start()           // Start capture session
+Agentation.shared.start { feedback in /* ... */ } // With completion
+Agentation.shared.stop()            // Stop capture session
+Agentation.shared.togglePause()     // Pause/resume detection
+Agentation.shared.clearFeedback()   // Clear all annotations
+Agentation.shared.copyFeedback()    // Copy to clipboard
 
 // Inspect hierarchy without UI
 let elements = Agentation.shared.captureHierarchy()
 let debug = Agentation.shared.debugHierarchy()
 
 // Session properties
-Agentation.shared.session?.outputFormat = .json
-Agentation.shared.session?.isActive
-Agentation.shared.session?.isPaused
+Agentation.shared.currentSession?.outputFormat = .json
+Agentation.shared.isActive
+Agentation.shared.currentSession?.isPaused
 ```
 
 ## Requirements

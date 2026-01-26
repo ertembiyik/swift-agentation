@@ -13,9 +13,13 @@ let package = Package(
             targets: ["Agentation"]
         ),
     ],
+    dependencies: [
+        .package(url: "https://github.com/Aeastr/UniversalGlass.git", from: "1.1.0"),
+    ],
     targets: [
         .target(
             name: "Agentation",
+            dependencies: ["UniversalGlass"],
             path: "Sources/Agentation"
         ),
         .testTarget(

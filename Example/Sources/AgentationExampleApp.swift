@@ -5,6 +5,10 @@ import Agentation
 @main
 struct AgentationExampleApp: App {
     init() {
+        // Agentation auto-installs when a scene becomes available.
+        // You can also call install() explicitly for immediate setup.
+        Agentation.shared.install()
+
         #if DEBUG
         Agentation.shared.enableShakeToStart()
         #endif
@@ -12,22 +16,9 @@ struct AgentationExampleApp: App {
 
     var body: some Scene {
         WindowGroup {
-            TabView {
-                NavigationStack {
-                    SwiftUIDemoView()
-                }
-                .tabItem {
-                    Label("SwiftUI", systemImage: "swift")
-                }
-
-                NavigationStack {
-                    UIKitDemoViewWrapper()
-                        .navigationTitle("UIKit Demo")
-                }
-                .tabItem {
-                    Label("UIKit", systemImage: "hammer")
-                }
-            }
+            NavigationStack {
+                        SwiftUIDemoView()
+                    }
         }
     }
 }

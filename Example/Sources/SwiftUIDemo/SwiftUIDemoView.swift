@@ -10,38 +10,17 @@ struct SwiftUIDemoView: View {
     @State private var notificationsEnabled = true
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    profileSection
-                    formSection
-                    buttonsSection
-                    controlsSection
-                }
-                .padding(20)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                profileSection
+                formSection
+                buttonsSection
+                controlsSection
             }
-
-            floatingButton
+            .padding(20)
         }
         .navigationTitle("SwiftUI Demo")
         .agentationTag("SwiftUIDemoScreen")
-    }
-
-    // MARK: - Floating Button
-
-    private var floatingButton: some View {
-        Button(action: startAgentation) {
-            Image(systemName: "sparkles")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .foregroundColor(.white)
-                .frame(width: 56, height: 56)
-                .background(Color.purple)
-                .clipShape(Circle())
-                .shadow(color: .purple.opacity(0.3), radius: 8, x: 0, y: 4)
-        }
-        .padding(.trailing, 20)
-        .padding(.bottom, 20)
     }
 
     // MARK: - Profile Section
@@ -56,7 +35,8 @@ struct SwiftUIDemoView: View {
                 Image(systemName: "person.circle.fill")
                     .resizable()
                     .frame(width: 80, height: 80)
-                    .foregroundColor(.blue)
+                    .foregroundStyle(.blue)
+                    .accessibilityLabel("Profile Avatar")
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Jane Appleseed")
@@ -65,7 +45,7 @@ struct SwiftUIDemoView: View {
 
                     Text("Product Designer")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
 
                 Spacer()
@@ -73,7 +53,7 @@ struct SwiftUIDemoView: View {
 
             Text("Creating beautiful and intuitive interfaces. I love working with SwiftUI and exploring new design patterns.")
                 .font(.body)
-                .foregroundColor(.primary)
+                .foregroundStyle(.primary)
 
             Divider()
         }
@@ -132,19 +112,22 @@ struct SwiftUIDemoView: View {
 
             HStack(spacing: 16) {
                 Button(action: {}) {
-                    Image(systemName: "apple.logo")
+                    Label("Sign in with Apple", systemImage: "apple.logo")
+                        .labelStyle(.iconOnly)
                         .font(.title2)
                 }
                 .buttonStyle(.bordered)
 
                 Button(action: {}) {
-                    Image(systemName: "g.circle.fill")
+                    Label("Sign in with Google", systemImage: "g.circle.fill")
+                        .labelStyle(.iconOnly)
                         .font(.title2)
                 }
                 .buttonStyle(.bordered)
 
                 Button(action: {}) {
-                    Image(systemName: "f.circle.fill")
+                    Label("Sign in with Facebook", systemImage: "f.circle.fill")
+                        .labelStyle(.iconOnly)
                         .font(.title2)
                 }
                 .buttonStyle(.bordered)
@@ -187,15 +170,6 @@ struct SwiftUIDemoView: View {
         }
     }
 
-    // MARK: - Actions
-
-    private func startAgentation() {
-        Agentation.shared.start { feedback in
-            print("=== Agentation Feedback ===")
-            print(feedback.toMarkdown())
-            print("===========================")
-        }
-    }
 }
 
 // MARK: - Preview

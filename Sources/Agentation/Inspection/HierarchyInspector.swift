@@ -148,7 +148,7 @@ public final class HierarchyInspector {
 
         var children: [ElementInfo] = []
         for subview in subviews {
-            guard !isHidden, alpha > 0.01 else { continue }
+            guard !subview.isHidden, subview.alpha > 0.01 else { continue }
             guard subview.bounds.width > 0, subview.bounds.height > 0 else { continue }
 
             let childInfo = inspectView(

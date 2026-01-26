@@ -1,139 +1,282 @@
 import UIKit
 import SwiftUI
 
-@MainActor
+// MARK: - Main Agentation Class
+
+@Observable
 public final class Agentation {
 
+    // MARK: - State
+
+    public enum State: Equatable {
+        case idle
+        case capturing
+    }
+
+    public enum OutputFormat: String, CaseIterable, Sendable {
+        case markdown
+        case json
+    }
+
+    // MARK: - Singleton
+
+    @MainActor
     public static let shared = Agentation()
 
-    public private(set) var currentSession: AgentationSession?
+    // MARK: - Observable Properties
 
-    public var isActive: Bool {
-        currentSession?.isActive ?? false
+    public private(set) var state: State = .idle
+    public private(set) var feedback: PageFeedback = PageFeedback(pageName: "", viewportSize: .zero)
+    public private(set) var isPaused: Bool = false
+
+    public var outputFormat: OutputFormat = .markdown
+    public var includeHiddenElements: Bool = false
+    public var includeSystemViews: Bool = false
+
+    // MARK: - Computed Properties
+
+    public var isCapturing: Bool {
+        state == .capturing
     }
 
-    private var floatingButtonWindow: FloatingButtonWindow?
-
-    private init() {}
-
-    public func start(from sourceFrame: CGRect? = nil, onComplete: ((PageFeedback) -> Void)? = nil) {
-        if let existing = currentSession, existing.isActive {
-            existing.stop()
-        }
-
-        let session = AgentationSession()
-        session.sourceFrame = sourceFrame
-        session.onComplete = { [weak self] feedback in
-            self?.showFloatingButtonAfterStop()
-            self?.currentSession = nil
-            onComplete?(feedback)
-        }
-
-        currentSession = session
-        session.start()
+    public var annotationCount: Int {
+        feedback.items.count
     }
 
+    // MARK: - Internal State
+
+    @MainActor
+    private var overlayWindow: OverlayWindow?
+
+    @MainActor
+    private var sceneObservationTask: Task<Void, Never>?
+
+    @MainActor
+    var isToolbarVisible: Bool = true
+
+    private var onCompleteCallback: ((PageFeedback) -> Void)?
+
+    // MARK: - Initialization
+
+    @MainActor
+    private init() {
+        sceneObservationTask = Task { @MainActor [weak self] in
+            if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                self?.installIfNeeded(in: scene)
+            }
+
+            for await notification in NotificationCenter.default.notifications(named: UIScene.didActivateNotification) {
+                guard let self, self.overlayWindow == nil else { break }
+                guard let scene = notification.object as? UIWindowScene else { continue }
+                self.installIfNeeded(in: scene)
+                break
+            }
+        }
+    }
+
+    // MARK: - Installation
+
+    @MainActor
+    public func install(in scene: UIWindowScene? = nil) {
+        let targetScene = scene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene
+        guard let windowScene = targetScene else { return }
+        installIfNeeded(in: windowScene)
+    }
+
+    @MainActor
+    private func installIfNeeded(in scene: UIWindowScene) {
+        guard overlayWindow == nil else { return }
+
+        let window = OverlayWindow(scene: scene)
+        window.isHidden = false
+        overlayWindow = window
+
+        sceneObservationTask?.cancel()
+        sceneObservationTask = nil
+    }
+
+    // MARK: - Capture Control
+
+    @MainActor
+    public func start(onComplete: ((PageFeedback) -> Void)? = nil) {
+        if state == .capturing {
+            stop()
+        }
+
+        let inspector = HierarchyInspector.shared
+        feedback = PageFeedback(
+            pageName: inspector.currentPageName(),
+            viewportSize: inspector.viewportSize()
+        )
+
+        dismissKeyboardGlobally()
+
+        onCompleteCallback = onComplete
+        state = .capturing
+        isPaused = false
+
+        overlayWindow?.refreshHierarchy()
+    }
+
+    @MainActor
     public func stop() {
-        currentSession?.stop()
-        currentSession = nil
+        guard state == .capturing else { return }
+
+        overlayWindow?.endEditing(true)
+        overlayWindow?.clearAllHighlights()
+        restoreKeyWindowToApp()
+
+        state = .idle
+        isPaused = false
+        onCompleteCallback?(feedback)
+        onCompleteCallback = nil
     }
 
-    private func showFloatingButtonAfterStop() {
-        floatingButtonWindow?.isHidden = false
-    }
-
+    @MainActor
     public func togglePause() {
-        currentSession?.togglePause()
+        isPaused.toggle()
+        if isPaused {
+            overlayWindow?.clearHoverHighlight()
+        }
     }
 
+    // MARK: - Feedback Management
+
+    @MainActor
+    public func addFeedback(_ text: String, for element: ElementInfo) {
+        let item = FeedbackItem(element: element, feedback: text)
+        feedback.items.append(item)
+        overlayWindow?.updateSelectedHighlights(for: feedback.items)
+    }
+
+    @MainActor
+    public func removeFeedback(_ item: FeedbackItem) {
+        feedback.items.removeAll { $0.id == item.id }
+        overlayWindow?.updateSelectedHighlights(for: feedback.items)
+    }
+
+    @MainActor
+    public func clearFeedback() {
+        feedback.items.removeAll()
+        overlayWindow?.clearAllHighlights()
+    }
+
+    @MainActor
     @discardableResult
     public func copyFeedback() -> String? {
-        guard let session = currentSession else { return nil }
-        let output = formatFeedback(session.feedback, format: session.outputFormat)
-        copyToClipboard(output)
+        let output = formatOutput()
+        UIPasteboard.general.string = output
         return output
     }
 
-    public func clearFeedback() {
-        currentSession?.clearFeedback()
+    // MARK: - Toolbar Visibility
+
+    @MainActor
+    public func showToolbar() {
+        isToolbarVisible = true
     }
 
+    @MainActor
+    public func hideToolbar() {
+        isToolbarVisible = false
+    }
+
+    // MARK: - Hierarchy Inspection
+
+    @MainActor
     public func captureHierarchy() -> [ElementInfo] {
         HierarchyInspector.shared.captureHierarchy()
     }
 
+    @MainActor
     public func debugHierarchy() -> String {
         HierarchyInspector.shared.printHierarchy()
     }
 
+    @MainActor
     public func viewControllerHierarchy() -> String {
         HierarchyInspector.shared.printViewControllerHierarchy()
     }
 
-    public func showFloatingButton() {
-        guard floatingButtonWindow == nil else { return }
-        let window = FloatingButtonWindow(onTap: toggleAgentation)
-        window.isHidden = false
-        floatingButtonWindow = window
-    }
+    // MARK: - Convenience
 
-    public func hideFloatingButton() {
-        floatingButtonWindow?.isHidden = true
-        floatingButtonWindow = nil
-    }
-
-    private func toggleAgentation() {
-        if isActive {
-            stop()
-        } else {
-            let sourceFrame = floatingButtonWindow?.buttonFrame
-            floatingButtonWindow?.isHidden = true
-            start(from: sourceFrame)
-        }
-    }
-
-    public func quickCapture(
-        format: AgentationSession.OutputFormat = .markdown,
-        completion: @escaping (String) -> Void
-    ) {
+    @MainActor
+    public func quickCapture(format: OutputFormat = .markdown, completion: @escaping (String) -> Void) {
         start { feedback in
-            let output = formatFeedback(feedback, format: format)
+            let output: String
+            switch format {
+            case .markdown:
+                output = feedback.toMarkdown()
+            case .json:
+                if let data = try? feedback.toJSON(), let json = String(data: data, encoding: .utf8) {
+                    output = json
+                } else {
+                    output = feedback.toMarkdown()
+                }
+            }
             completion(output)
         }
     }
-}
 
-private func formatFeedback(_ feedback: PageFeedback, format: AgentationSession.OutputFormat) -> String {
-    switch format {
-    case .markdown:
-        return feedback.toMarkdown()
-    case .json:
-        if let data = try? feedback.toJSON(),
-           let json = String(data: data, encoding: .utf8) {
-            return json
+    // MARK: - Internal
+
+    @MainActor
+    func refreshHierarchy() {
+        overlayWindow?.refreshHierarchy()
+    }
+
+    private func formatOutput() -> String {
+        switch outputFormat {
+        case .markdown:
+            return feedback.toMarkdown()
+        case .json:
+            if let data = try? feedback.toJSON(), let json = String(data: data, encoding: .utf8) {
+                return json
+            }
+            return feedback.toMarkdown()
         }
-        return feedback.toMarkdown()
+    }
+
+    @MainActor
+    private func dismissKeyboardGlobally() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
+    @MainActor
+    private func restoreKeyWindowToApp() {
+        for scene in UIApplication.shared.connectedScenes {
+            guard let windowScene = scene as? UIWindowScene else { continue }
+            for window in windowScene.windows where !(window is AgentationOverlayWindow) {
+                if window.canBecomeKey {
+                    window.makeKeyAndVisible()
+                    return
+                }
+            }
+        }
     }
 }
 
-private func copyToClipboard(_ text: String) {
-    UIPasteboard.general.string = text
-}
+// MARK: - Shake to Start (DEBUG)
 
 #if DEBUG
 extension Agentation {
 
+    @MainActor
     public func enableShakeToStart() {
         ShakeDetector.shared.onShake = { [weak self] in
-            self?.toggleAgentation()
+            guard let self else { return }
+            if self.isCapturing {
+                self.stop()
+            } else {
+                self.start()
+            }
         }
         ShakeDetector.shared.isEnabled = true
     }
 }
 
-@MainActor
 final class ShakeDetector {
-    static let shared = ShakeDetector()
+    @MainActor static let shared = ShakeDetector()
 
     var isEnabled = false
     var onShake: (() -> Void)?
@@ -144,8 +287,10 @@ final class ShakeDetector {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            guard self?.isEnabled == true else { return }
-            self?.onShake?()
+            MainActor.assumeIsolated {
+                guard self?.isEnabled == true else { return }
+                self?.onShake?()
+            }
         }
     }
 }
@@ -163,124 +308,3 @@ extension UIWindow {
     }
 }
 #endif
-
-@MainActor
-private final class FloatingButtonWindow: UIWindow {
-
-    private let onTap: () -> Void
-    private var panGesture: UIPanGestureRecognizer?
-
-    init(onTap: @escaping () -> Void) {
-        self.onTap = onTap
-
-        let windowScene = UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first
-
-        super.init(frame: CGRect(x: 0, y: 0, width: 56, height: 56))
-
-        if let windowScene {
-            self.windowScene = windowScene
-        }
-
-        self.windowLevel = .alert + 50
-        self.backgroundColor = .clear
-        self.isUserInteractionEnabled = true
-
-        let buttonView = FloatingButtonView(onTap: onTap)
-        let hostingController = UIHostingController(rootView: buttonView)
-        hostingController.view.backgroundColor = .clear
-        self.rootViewController = hostingController
-
-        positionWindow()
-        setupPanGesture()
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    private func positionWindow() {
-        guard let windowScene = self.windowScene else { return }
-
-        let screenBounds = windowScene.screen.bounds
-        let safeAreaInsets = windowScene.windows.first?.safeAreaInsets ?? .zero
-
-        self.frame = CGRect(
-            x: screenBounds.width - 56 - 16,
-            y: screenBounds.height - 56 - safeAreaInsets.bottom - 16,
-            width: 56,
-            height: 56
-        )
-    }
-
-    private func setupPanGesture() {
-        let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
-        self.addGestureRecognizer(pan)
-        self.panGesture = pan
-    }
-
-    @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
-        guard let windowScene = self.windowScene else { return }
-
-        let translation = gesture.translation(in: self)
-        let screenBounds = windowScene.screen.bounds
-        let safeAreaInsets = windowScene.windows.first?.safeAreaInsets ?? .zero
-
-        var newX = self.frame.origin.x + translation.x
-        var newY = self.frame.origin.y + translation.y
-
-        let minX: CGFloat = 8
-        let maxX = screenBounds.width - 56 - 8
-        let minY = safeAreaInsets.top + 8
-        let maxY = screenBounds.height - 56 - safeAreaInsets.bottom - 8
-
-        newX = max(minX, min(maxX, newX))
-        newY = max(minY, min(maxY, newY))
-
-        self.frame.origin = CGPoint(x: newX, y: newY)
-        gesture.setTranslation(.zero, in: self)
-    }
-
-    var buttonFrame: CGRect {
-        return self.frame
-    }
-}
-
-private struct FloatingButtonView: View {
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            Image(systemName: "hand.tap.fill")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-        }
-        .universalGlassButtonStyle()
-        .clipShape(Circle())
-        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-    }
-}
-
-public struct AgentationTriggerButton: View {
-    public init() {}
-
-    public var body: some View {
-        Button {
-            if Agentation.shared.isActive {
-                Agentation.shared.stop()
-            } else {
-                Agentation.shared.start()
-            }
-        } label: {
-            Image(systemName: "hand.tap.fill")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-        }
-        .universalGlassButtonStyle()
-        .clipShape(Circle())
-        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
-    }
-}

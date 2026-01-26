@@ -1,131 +1,88 @@
 import UIKit
 import SwiftUI
 
-@MainActor
-internal final class OverlayWindow: AgentationOverlayWindow {
-
-    weak var session: AgentationSession?
+/// Single overlay window that handles both the always-visible toolbar and capture functionality.
+/// - When idle: shows collapsed trigger button, passes through touches except on toolbar
+/// - When capturing: shows expanded control bar, intercepts all touches for element detection
+final class OverlayWindow: AgentationOverlayWindow {
 
     private var hoverHighlightView: ElementHighlightView?
     private var selectedHighlightViews: [UUID: ElementHighlightView] = [:]
-
-    private var controlBarHostingController: UIHostingController<MorphingControlBar>?
     private var overlayViewController: OverlayViewController?
+    private var toolbarHostingController: UIHostingController<AgentationToolbarView>?
 
     private var cachedHierarchy: [ElementInfo] = []
     private var hoveredElement: ElementInfo?
 
-    init(session: AgentationSession) {
-        self.session = session
+    @MainActor
+    init(scene: UIWindowScene) {
+        super.init(frame: scene.screen.bounds)
 
-        let windowScene = UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first
-
-        super.init(frame: UIScreen.main.bounds)
-
-        if let windowScene {
-            self.windowScene = windowScene
-        }
-
+        self.windowScene = scene
         self.windowLevel = .alert + 100
         self.backgroundColor = .clear
         self.isUserInteractionEnabled = true
 
         setupRootViewController()
-        setupControlBar()
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
+    @MainActor
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        guard let session else { return nil }
+        guard let overlayVC = overlayViewController else { return nil }
 
-        if let controlBarView = controlBarHostingController?.view {
-            let pointInControlBar = controlBarView.convert(point, from: self)
-            if let hitView = controlBarView.hitTest(pointInControlBar, with: event),
-               isInteractiveView(hitView) {
-                return super.hitTest(point, with: event)
-            }
+        // Always check if we hit the toolbar first
+        if let toolbarHosting = toolbarHostingController,
+           let toolbarHit = toolbarHosting.view.hitTest(convert(point, to: toolbarHosting.view), with: event),
+           toolbarHit !== toolbarHosting.view {
+            return toolbarHit
         }
 
-        if session.isPaused {
+        // When not capturing or paused, pass through all other touches
+        guard Agentation.shared.isCapturing, !Agentation.shared.isPaused else {
             return nil
         }
 
-        return super.hitTest(point, with: event)
+        // When capturing, intercept all touches for element detection
+        return overlayVC.view
     }
 
-    private func isInteractiveView(_ view: UIView) -> Bool {
-        var current: UIView? = view
-        while let v = current {
-            let typeName = String(describing: type(of: v))
-            if typeName.contains("Button") || v.gestureRecognizers?.isEmpty == false {
-                return true
-            }
-            current = v.superview
-        }
-        return false
-    }
-
+    @MainActor
     private func setupRootViewController() {
         let rootVC = OverlayViewController()
         rootVC.overlay = self
         self.rootViewController = rootVC
         self.overlayViewController = rootVC
+
+        // Add toolbar as a child view controller
+        let toolbarView = AgentationToolbarView()
+        let toolbarHosting = UIHostingController(rootView: toolbarView)
+        toolbarHosting.view.backgroundColor = .clear
+
+        rootVC.addChild(toolbarHosting)
+        rootVC.view.addSubview(toolbarHosting.view)
+        toolbarHosting.view.frame = rootVC.view.bounds
+        toolbarHosting.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        toolbarHosting.didMove(toParent: rootVC)
+
+        self.toolbarHostingController = toolbarHosting
     }
 
-    private func setupControlBar() {
-        guard let session else { return }
-
-        let screenBounds = UIScreen.main.bounds
-        let sourceFrame = session.sourceFrame ?? CGRect(
-            x: screenBounds.width - 56 - 16,
-            y: screenBounds.height - 56 - 50,
-            width: 56,
-            height: 56
-        )
-
-        let controlBar = MorphingControlBar(
-            session: session,
-            sourceFrame: sourceFrame,
-            containerSize: screenBounds.size
-        )
-        let hostingController = UIHostingController(rootView: controlBar)
-        hostingController.view.backgroundColor = .clear
-
-        controlBarHostingController = hostingController
-
-        guard let rootVC = rootViewController else { return }
-        rootVC.addChild(hostingController)
-        rootVC.view.addSubview(hostingController.view)
-        hostingController.didMove(toParent: rootVC)
-
-        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            hostingController.view.leadingAnchor.constraint(equalTo: rootVC.view.leadingAnchor),
-            hostingController.view.trailingAnchor.constraint(equalTo: rootVC.view.trailingAnchor),
-            hostingController.view.topAnchor.constraint(equalTo: rootVC.view.topAnchor),
-            hostingController.view.bottomAnchor.constraint(equalTo: rootVC.view.bottomAnchor)
-        ])
-    }
-
+    @MainActor
     func refreshHierarchy() {
         cachedHierarchy = HierarchyInspector.shared.captureHierarchy()
-        if let feedbackItems = session?.feedback.items {
-            updateSelectedHighlights(for: feedbackItems)
-        }
+        updateSelectedHighlights(for: Agentation.shared.feedback.items)
     }
 
+    @MainActor
     func showAnnotationPopup(for element: ElementInfo) {
-        guard let session else { return }
-
         overlayViewController?.presentAnnotationPopup(
             for: element,
             onSubmit: { [weak self] feedback in
-                session.addFeedback(feedback, for: element)
+                Agentation.shared.addFeedback(feedback, for: element)
                 self?.clearHoverHighlight()
             },
             onCancel: { [weak self] in
@@ -134,6 +91,7 @@ internal final class OverlayWindow: AgentationOverlayWindow {
         )
     }
 
+    @MainActor
     func updateHoverHighlight(at point: CGPoint) {
         guard let rootVC = rootViewController else { return }
 
@@ -161,12 +119,14 @@ internal final class OverlayWindow: AgentationOverlayWindow {
         hoverHighlightView = highlight
     }
 
+    @MainActor
     func clearHoverHighlight() {
         hoveredElement = nil
         hoverHighlightView?.removeFromSuperview()
         hoverHighlightView = nil
     }
 
+    @MainActor
     func addSelectedHighlight(for element: ElementInfo) {
         guard let rootVC = rootViewController else { return }
 
@@ -183,12 +143,14 @@ internal final class OverlayWindow: AgentationOverlayWindow {
         selectedHighlightViews[element.id] = highlight
     }
 
+    @MainActor
     func removeSelectedHighlight(for elementId: UUID) {
         selectedHighlightViews[elementId]?.stopObserving()
         selectedHighlightViews[elementId]?.removeFromSuperview()
         selectedHighlightViews.removeValue(forKey: elementId)
     }
 
+    @MainActor
     func clearAllHighlights() {
         hoverHighlightView?.removeFromSuperview()
         hoverHighlightView = nil
@@ -201,6 +163,7 @@ internal final class OverlayWindow: AgentationOverlayWindow {
         selectedHighlightViews.removeAll()
     }
 
+    @MainActor
     func updateSelectedHighlights(for feedbackItems: [FeedbackItem]) {
         let currentIds = Set(feedbackItems.map { $0.element.id })
         let toRemove = selectedHighlightViews.keys.filter { !currentIds.contains($0) }
@@ -213,22 +176,9 @@ internal final class OverlayWindow: AgentationOverlayWindow {
         }
     }
 
-    func prepareForRemoval() {
-        rootViewController?.presentedViewController?.dismiss(animated: false)
-
-        controlBarHostingController?.willMove(toParent: nil)
-        controlBarHostingController?.view.removeFromSuperview()
-        controlBarHostingController?.removeFromParent()
-        controlBarHostingController = nil
-
-        clearAllHighlights()
-
-        overlayViewController = nil
-        rootViewController = nil
-    }
-
+    @MainActor
     func handleTap(at point: CGPoint) {
-        guard let session, !session.isPaused else { return }
+        guard Agentation.shared.isCapturing, !Agentation.shared.isPaused else { return }
 
         if let element = hoveredElement {
             showAnnotationPopup(for: element)
@@ -236,7 +186,6 @@ internal final class OverlayWindow: AgentationOverlayWindow {
     }
 }
 
-@MainActor
 private final class OverlayViewController: UIViewController {
     weak var overlay: OverlayWindow?
 
@@ -256,11 +205,6 @@ private final class OverlayViewController: UIViewController {
         let hoverGesture = UIHoverGestureRecognizer(target: self, action: #selector(handleHover(_:)))
         view.addGestureRecognizer(hoverGesture)
         #endif
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        overlay?.refreshHierarchy()
     }
 
     func presentAnnotationPopup(
@@ -291,6 +235,7 @@ private final class OverlayViewController: UIViewController {
     }
 
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
+        guard Agentation.shared.isCapturing else { return }
         overlay?.refreshHierarchy()
         let point = gesture.location(in: view)
         overlay?.updateHoverHighlight(at: point)
@@ -298,6 +243,7 @@ private final class OverlayViewController: UIViewController {
     }
 
     @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
+        guard Agentation.shared.isCapturing else { return }
         let point = gesture.location(in: view)
 
         switch gesture.state {
@@ -313,6 +259,7 @@ private final class OverlayViewController: UIViewController {
 
     #if targetEnvironment(macCatalyst)
     @objc private func handleHover(_ gesture: UIHoverGestureRecognizer) {
+        guard Agentation.shared.isCapturing else { return }
         let point = gesture.location(in: view)
 
         switch gesture.state {
@@ -331,6 +278,7 @@ private final class OverlayViewController: UIViewController {
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesBegan(touches, with: event)
+        guard Agentation.shared.isCapturing else { return }
         overlay?.refreshHierarchy()
         if let touch = touches.first {
             overlay?.updateHoverHighlight(at: touch.location(in: view))
@@ -339,6 +287,7 @@ private final class OverlayViewController: UIViewController {
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesMoved(touches, with: event)
+        guard Agentation.shared.isCapturing else { return }
         if let touch = touches.first {
             overlay?.updateHoverHighlight(at: touch.location(in: view))
         }
