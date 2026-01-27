@@ -21,23 +21,21 @@ struct AgentationToolbarView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            toolbarContent(in: geometry)
+            toolbarContent()
                 .position(computePosition(in: geometry))
-                .opacity(isInitialized && Agentation.shared.isToolbarVisible ? 1 : 0)
-                .scaleEffect(Agentation.shared.isToolbarVisible ? 1 : 0.5)
+                .opacity(Agentation.shared.isToolbarVisible ? 1 : 0)
                 .gesture(dragGesture(in: geometry))
                 .onAppear {
                     guard !isInitialized else { return }
+                    
                     position = loadOrDefaultPosition(in: geometry)
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        isInitialized = true
-                    }
+
+                    isInitialized = true
                 }
                 .animation(.spring(response: 0.4, dampingFraction: 0.75), value: Agentation.shared.isCapturing)
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isDragging)
                 .animation(.spring(response: 0.3, dampingFraction: 0.8), value: Agentation.shared.isToolbarVisible)
         }
-        .ignoresSafeArea()
         .sheet(isPresented: $showingPreview) {
             PreviewSheet()
         }
@@ -49,7 +47,7 @@ struct AgentationToolbarView: View {
     // MARK: - Toolbar Content
 
     @ViewBuilder
-    private func toolbarContent(in geometry: GeometryProxy) -> some View {
+    private func toolbarContent() -> some View {
         UniversalGlassEffectContainer {
             if Agentation.shared.isCapturing {
                 expandedControlBar
@@ -75,7 +73,6 @@ struct AgentationToolbarView: View {
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
-        .scaleEffect(isDragging ? 1.1 : 1.0)
         .overlay(alignment: .topTrailing) {
             if Agentation.shared.annotationCount > 0 {
                 BadgeView(count: Agentation.shared.annotationCount)
