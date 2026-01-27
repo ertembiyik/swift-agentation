@@ -35,9 +35,10 @@ final class OverlayWindow: AgentationOverlayWindow {
         guard let overlayVC = overlayViewController else { return nil }
 
         // Always check if we hit the toolbar first
+        // Note: SwiftUI returns the hosting view itself for interactive content,
+        // so we must NOT filter out `toolbarHit === toolbarHosting.view`
         if let toolbarHosting = toolbarHostingController,
-           let toolbarHit = toolbarHosting.view.hitTest(convert(point, to: toolbarHosting.view), with: event),
-           toolbarHit !== toolbarHosting.view {
+           let toolbarHit = toolbarHosting.view.hitTest(convert(point, to: toolbarHosting.view), with: event) {
             return toolbarHit
         }
 

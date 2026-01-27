@@ -72,6 +72,8 @@ struct AgentationToolbarView: View {
         } label: {
             Image(systemName: "sparkles")
                 .font(.system(size: 20, weight: .semibold))
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
         }
         .scaleEffect(isDragging ? 1.1 : 1.0)
         .overlay(alignment: .topTrailing) {
@@ -135,6 +137,15 @@ struct AgentationToolbarView: View {
         guard isInitialized else {
             return defaultPosition(in: geometry)
         }
+
+        // Center horizontally when expanded
+        if Agentation.shared.isCapturing {
+            return CGPoint(
+                x: geometry.size.width / 2,
+                y: position.y
+            )
+        }
+
         return position
     }
 
