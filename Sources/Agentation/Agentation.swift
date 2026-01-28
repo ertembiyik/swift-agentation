@@ -54,6 +54,9 @@ public final class Agentation {
     @MainActor
     var isToolbarVisible: Bool = true
 
+    @ObservationIgnored
+    var toolbarFrame: CGRect = .zero
+
     private var onCompleteCallback: ((PageFeedback) -> Void)?
 
     // MARK: - Initialization

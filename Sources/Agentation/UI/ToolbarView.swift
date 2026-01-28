@@ -2,8 +2,6 @@ import SwiftUI
 import UIKit
 import UniversalGlass
 
-var toolbarFrame: CGRect = .zero
-
 struct ToolbarView: View, HitTestable {
 
     private struct GeometryInfo: Equatable {
@@ -85,7 +83,7 @@ struct ToolbarView: View, HitTestable {
         .onGeometryChange(for: CGRect.self) { proxy in
             proxy.frame(in: .global)
         } action: { newValue in
-            toolbarFrame = newValue
+            Agentation.shared.toolbarFrame = newValue
         }
     }
 
@@ -154,7 +152,7 @@ struct ToolbarView: View, HitTestable {
     // MARK: - HitTestable
 
     func contains(_ point: CGPoint) -> Bool {
-        toolbarFrame.contains(point)
+        Agentation.shared.toolbarFrame.contains(point)
     }
 
     private func defaultPosition(in geometryInfo: GeometryInfo) -> CGPoint {

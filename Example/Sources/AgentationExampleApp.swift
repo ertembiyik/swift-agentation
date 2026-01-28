@@ -15,8 +15,20 @@ struct AgentationExampleApp: App {
 
     var body: some Scene {
         WindowGroup {
-            NavigationStack {
-                SwiftUIDemoView()
+            TabView {
+                NavigationStack {
+                    SwiftUIDemoView()
+                }
+                .tabItem {
+                    Label("SwiftUI", systemImage: "swift")
+                }
+
+                NavigationStack {
+                    UIKitDemoViewWrapper()
+                }
+                .tabItem {
+                    Label("UIKit", systemImage: "hammer")
+                }
             }
         }
     }

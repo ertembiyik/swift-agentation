@@ -1,8 +1,5 @@
 import UIKit
 
-public typealias PlatformView = UIView
-public typealias PlatformWindow = UIWindow
-
 @MainActor
 public final class HierarchyInspector {
 
