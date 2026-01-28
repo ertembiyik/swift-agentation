@@ -32,9 +32,7 @@ struct FeedbackScreenView: View {
                     }
                 }
         }
-        .presentationDetents([.medium])
         .task {
-            try? await Task.sleep(for: .milliseconds(400))
             isFocused = true
         }
     }

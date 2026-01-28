@@ -11,10 +11,6 @@ struct ToolbarView: View, HitTestable {
         let safeAreaInsets: EdgeInsets
     }
 
-    private struct ToolbarFrameHolder {
-        let toolbarFrame: CGRect
-    }
-
     private enum DragState: Equatable {
         case idle
         case dragging(startPosition: CGPoint)
@@ -22,7 +18,7 @@ struct ToolbarView: View, HitTestable {
 
     private static let size: CGFloat = 44
 
-    @State private var position: CGPoint = .zero
+    @State private var position: CGPoint? = nil
     @State private var dragState = DragState.idle
     @State private var showingSettings = false
     @State private var showingPreview = false
@@ -33,13 +29,34 @@ struct ToolbarView: View, HitTestable {
 
     var body: some View {
         toolbarContent
-            .position(computePosition(in: geometryInfo))
+            .position(position ?? defaultPosition(in: geometryInfo))
             .gesture(dragGesture(in: geometryInfo))
             .onGeometryChange(for: GeometryInfo.self, of: { proxy in
                 GeometryInfo(rect: proxy.frame(in: .global), safeAreaInsets: proxy.safeAreaInsets)
             }, action: { newValue in
                 geometryInfo = newValue
             })
+            .onChange(of: Agentation.shared.isCapturing) { oldValue, newValue in
+                guard geometryInfo.rect != .zero else {
+                    return
+                }
+
+                let position = position ?? defaultPosition(in: geometryInfo)
+
+                if newValue && !oldValue {
+                    let currentY = position.y
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                        self.position = CGPoint(
+                            x: geometryInfo.rect.size.width / 2,
+                            y: currentY
+                        )
+                    }
+                } else if !newValue && oldValue {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                        self.position = snapToEdge(position, in: geometryInfo)
+                    }
+                }
+            }
             .animation(.spring(response: 0.4, dampingFraction: 0.75), value: Agentation.shared.isCapturing)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: dragState)
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: Agentation.shared.isToolbarVisible)
@@ -49,6 +66,7 @@ struct ToolbarView: View, HitTestable {
             .sheet(isPresented: $showingSettings) {
                 SettingsScreenView()
             }
+            .accessibilityHidden(true)
     }
 
     private var toolbarContent: some View {
@@ -87,7 +105,6 @@ struct ToolbarView: View, HitTestable {
                     .offset(x: 8, y: -8)
             }
         }
-        .accessibilityLabel("Start Agentation")
     }
 
     private var expanded: some View {
@@ -140,26 +157,6 @@ struct ToolbarView: View, HitTestable {
         toolbarFrame.contains(point)
     }
 
-    private func computePosition(in geometryInfo: GeometryInfo) -> CGPoint {
-        guard geometryInfo.rect != .zero else {
-            return .zero
-        }
-
-        guard position != .zero else {
-            return defaultPosition(in: geometryInfo)
-        }
-
-        // Center horizontally when expanded
-        if Agentation.shared.isCapturing {
-            return CGPoint(
-                x: geometryInfo.rect.size.width / 2,
-                y: position.y
-            )
-        }
-
-        return position
-    }
-
     private func defaultPosition(in geometryInfo: GeometryInfo) -> CGPoint {
         let safeArea = geometryInfo.safeAreaInsets
         let margin: CGFloat = 16
@@ -209,8 +206,9 @@ struct ToolbarView: View, HitTestable {
 
                 switch dragState {
                 case .idle:
-                    dragState = .dragging(startPosition: position)
-                    dragStartPosition = position
+                    let startPos = position ?? defaultPosition(in: geometryInfo)
+                    dragState = .dragging(startPosition: startPos)
+                    dragStartPosition = startPos
                 case .dragging(startPosition: let startPosition):
                     dragStartPosition = startPosition
                 }
@@ -225,7 +223,8 @@ struct ToolbarView: View, HitTestable {
             .onEnded { _ in
                 dragState = .idle
 
-                let snapped = snapToEdge(position, in: geometryInfo)
+                guard let currentPosition = position else { return }
+                let snapped = snapToEdge(currentPosition, in: geometryInfo)
 
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                     position = snapped
