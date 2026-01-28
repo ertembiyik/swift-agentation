@@ -34,6 +34,7 @@ internal final class AgentationTagView: UIView {
 
     override func didMoveToSuperview() {
         super.didMoveToSuperview()
+        
         updateTagRegistration()
     }
 

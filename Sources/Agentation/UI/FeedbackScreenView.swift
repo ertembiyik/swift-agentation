@@ -1,18 +1,8 @@
 import SwiftUI
+import UniversalGlass
 
-extension View {
-    @ViewBuilder
-    func universalGlassButtonStyle() -> some View {
-        if #available(iOS 26.0, macCatalyst 26.0, *) {
-            self.buttonStyle(.glassProminent)
-        } else {
-            self.buttonStyle(.borderedProminent)
-        }
-    }
-}
+struct FeedbackScreenView: View {
 
-@MainActor
-struct AnnotationPopupView: View {
     let element: ElementInfo
     let onSubmit: (String) -> Void
     let onCancel: () -> Void
@@ -125,21 +115,5 @@ struct AnnotationPopupView: View {
         dismiss()
         onCancel()
     }
-}
 
-#Preview("Annotation Popup") {
-    Color.clear
-        .sheet(isPresented: .constant(true)) {
-            AnnotationPopupView(
-                element: ElementInfo(
-                    accessibilityLabel: "Profile byline",
-                    accessibilityIdentifier: "profileByline",
-                    typeName: "UILabel",
-                    frame: CGRect(x: 100, y: 200, width: 200, height: 44),
-                    path: ".Profile > .Header > #profileByline"
-                ),
-                onSubmit: { _ in },
-                onCancel: {}
-            )
-        }
 }

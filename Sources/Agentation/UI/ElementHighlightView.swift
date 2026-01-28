@@ -1,7 +1,6 @@
 import UIKit
 
-@MainActor
-internal final class ElementHighlightView: UIView {
+final class ElementHighlightView: UIView {
 
     enum Style {
         case hover
