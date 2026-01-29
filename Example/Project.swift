@@ -26,8 +26,6 @@ let project = Project(
             ]),
             sources: [
                 "Sources/**",
-                "Sources/SwiftUIDemo/**",
-                "Sources/UIKitDemo/**"
             ],
             resources: ["Resources/**"],
             dependencies: [

@@ -1,7 +1,7 @@
 import UIKit
 import SwiftUI
 
-final class OverlayWindow: AgentationOverlayWindow {
+final class OverlayWindow: UIWindow {
 
     private var hoverHighlightView: ElementHighlightView?
     private var selectedHighlightViews: [UUID: ElementHighlightView] = [:]
@@ -43,19 +43,24 @@ final class OverlayWindow: AgentationOverlayWindow {
     }
 
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        // we check the presentedVC first, since it overlays the toolbar too
+        if Agentation.shared.isCapturing,
+           let presentedViewControllerView = overlayViewController.presentedViewController?.view,
+           let presentedVCHitTest = presentedViewControllerView.hitTest(convert(point, to: presentedViewControllerView), with: event) {
+            return presentedVCHitTest
+        }
+
+        // we check the toolbar since it overlays the whole screen + should recieve touches in compact mode
         if let toolbarHit = toolbarHostingView.hitTest(convert(point, to: toolbarHostingView), with: event) {
             return toolbarHit
         }
 
+        // forward touches to a screen itself in non active mode
         guard Agentation.shared.isCapturing, !Agentation.shared.isPaused else {
             return nil
         }
 
         return super.hitTest(point, with: event)
-    }
-
-    private func setupRootViewController() {
-
     }
 
     func refreshHierarchy() {
@@ -64,10 +69,17 @@ final class OverlayWindow: AgentationOverlayWindow {
     }
 
     func showAnnotationPopup(for element: ElementInfo) {
+        let existingItem = Agentation.shared.feedbackItem(for: element)
+
         overlayViewController.presentAnnotationPopup(
             for: element,
+            existingFeedback: existingItem,
             onSubmit: { [weak self] feedback in
-                Agentation.shared.addFeedback(feedback, for: element)
+                if let existingItem {
+                    Agentation.shared.updateFeedback(existingItem, with: feedback)
+                } else {
+                    Agentation.shared.addFeedback(feedback, for: element)
+                }
 
                 self?.clearHoverHighlight()
             },
@@ -96,7 +108,9 @@ final class OverlayWindow: AgentationOverlayWindow {
         hoverHighlightView?.removeFromSuperview()
         hoverHighlightView = nil
 
-        guard let element = foundElement else { return }
+        guard let element = foundElement else {
+            return
+        }
 
         let highlight = ElementHighlightView(frame: element.frame, style: .hover)
         highlight.elementInfo = element
@@ -157,15 +171,16 @@ final class OverlayWindow: AgentationOverlayWindow {
     }
 
     func handleTap(at point: CGPoint) {
-        guard Agentation.shared.isCapturing, !Agentation.shared.isPaused else { return }
-
-        if let element = hoveredElement {
-            showAnnotationPopup(for: element)
+        guard Agentation.shared.isCapturing, !Agentation.shared.isPaused, let element = hoveredElement else {
+            return
         }
+
+        showAnnotationPopup(for: element)
     }
 }
 
 private final class OverlayViewController: UIViewController {
+
     weak var overlay: OverlayWindow?
 
     override func viewDidLoad() {
@@ -206,6 +221,7 @@ private final class OverlayViewController: UIViewController {
     }
 
     func presentAnnotationPopup(for element: ElementInfo,
+                                existingFeedback: FeedbackItem?,
                                 onSubmit: @escaping (String) -> Void,
                                 onCancel: @escaping () -> Void) {
         if presentedViewController != nil {
@@ -214,6 +230,7 @@ private final class OverlayViewController: UIViewController {
 
         let popupView = FeedbackScreenView(
             element: element,
+            existingFeedback: existingFeedback?.feedback,
             onSubmit: onSubmit,
             onCancel: onCancel
         )

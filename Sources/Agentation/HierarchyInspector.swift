@@ -14,7 +14,7 @@ public final class HierarchyInspector {
     private init() {}
 
     private func shouldIgnoreWindow(_ window: UIWindow) -> Bool {
-        if window is AgentationOverlayWindow { return true }
+        if window is OverlayWindow { return true }
         let className = String(describing: type(of: window))
         return ignoredWindowClassNames.contains(className)
     }
@@ -217,8 +217,6 @@ public final class HierarchyInspector {
 struct WeakViewRef {
     weak var view: UIView?
 }
-
-internal class AgentationOverlayWindow: UIWindow {}
 
 @MainActor
 public final class AgentationTagRegistry {

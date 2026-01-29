@@ -103,14 +103,16 @@ public final class Agentation {
     @MainActor
     public func start(onComplete: ((PageFeedback) -> Void)? = nil) {
         if state == .capturing {
-            stop()
+            return
         }
 
         let inspector = HierarchyInspector.shared
-        feedback = PageFeedback(
-            pageName: inspector.currentPageName(),
-            viewportSize: inspector.viewportSize()
-        )
+        if feedback.items.isEmpty {
+            feedback = PageFeedback(
+                pageName: inspector.currentPageName(),
+                viewportSize: inspector.viewportSize()
+            )
+        }
 
         dismissKeyboardGlobally()
 
@@ -126,7 +128,7 @@ public final class Agentation {
         guard state == .capturing else { return }
 
         overlayWindow?.endEditing(true)
-        overlayWindow?.clearAllHighlights()
+        overlayWindow?.clearHoverHighlight()
         restoreKeyWindowToApp()
 
         state = .idle
@@ -150,6 +152,18 @@ public final class Agentation {
         let item = FeedbackItem(element: element, feedback: text)
         feedback.items.append(item)
         overlayWindow?.updateSelectedHighlights(for: feedback.items)
+    }
+
+    @MainActor
+    public func updateFeedback(_ item: FeedbackItem, with text: String) {
+        guard let index = feedback.items.firstIndex(where: { $0.id == item.id }) else { return }
+        let updated = FeedbackItem(id: item.id, element: item.element, feedback: text, timestamp: item.timestamp)
+        feedback.items[index] = updated
+    }
+
+    @MainActor
+    public func feedbackItem(for element: ElementInfo) -> FeedbackItem? {
+        feedback.items.first { $0.element.id == element.id }
     }
 
     @MainActor
@@ -249,7 +263,7 @@ public final class Agentation {
     private func restoreKeyWindowToApp() {
         for scene in UIApplication.shared.connectedScenes {
             guard let windowScene = scene as? UIWindowScene else { continue }
-            for window in windowScene.windows where !(window is AgentationOverlayWindow) {
+            for window in windowScene.windows where !(window is OverlayWindow) {
                 if window.canBecomeKey {
                     window.makeKeyAndVisible()
                     return

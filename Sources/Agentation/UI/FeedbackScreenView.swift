@@ -4,21 +4,42 @@ import UniversalGlass
 struct FeedbackScreenView: View {
 
     let element: ElementInfo
+
+    let existingFeedback: String?
+
     let onSubmit: (String) -> Void
+
     let onCancel: () -> Void
 
-    @State private var feedbackText: String = ""
+    @State private var feedbackText: String
+
     @FocusState private var isFocused: Bool
+
     @Environment(\.dismiss) private var dismiss
+
+    init(element: ElementInfo,
+         existingFeedback: String? = nil,
+         onSubmit: @escaping (String) -> Void,
+         onCancel: @escaping () -> Void) {
+        self.element = element
+        self.existingFeedback = existingFeedback
+        self.onSubmit = onSubmit
+        self.onCancel = onCancel
+        self._feedbackText = State(initialValue: existingFeedback ?? "")
+    }
 
     private var trimmedFeedback: String {
         feedbackText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var isEditing: Bool {
+        existingFeedback != nil
+    }
+
     var body: some View {
         NavigationStack {
             popupContent
-                .navigationTitle("Add Feedback")
+                .navigationTitle(isEditing ? "Edit Feedback" : "Add Feedback")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -88,13 +109,15 @@ struct FeedbackScreenView: View {
             Spacer()
 
             Button(action: handleSubmit) {
-                Text("Add Feedback")
+                Text(isEditing ? "Save Changes" : "Add Feedback")
                     .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
                     .padding(.vertical, 15)
                     .frame(maxWidth: .infinity)
             }
-            .universalGlassButtonStyle()
+            .universalGlassEffect(.regular.tint(.purple).interactive())
             .disabled(trimmedFeedback.isEmpty)
+            .opacity(trimmedFeedback.isEmpty ? 0.7 : 1)
             .padding(.horizontal, 20)
             .containerRelativeFrame(.horizontal, alignment: .center) { len, _ in
                 len
@@ -105,8 +128,8 @@ struct FeedbackScreenView: View {
 
     private func handleSubmit() {
         guard !trimmedFeedback.isEmpty else { return }
-        dismiss()
         onSubmit(trimmedFeedback)
+        dismiss()
     }
 
     private func handleCancel() {
