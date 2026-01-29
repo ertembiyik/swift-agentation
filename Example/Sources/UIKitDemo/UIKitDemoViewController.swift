@@ -208,27 +208,6 @@ final class UIKitDemoViewController: UIViewController {
         return sc
     }()
 
-    // Floating Agentation Button
-    private lazy var floatingButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.translatesAutoresizingMaskIntoConstraints = false
-
-        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
-        button.setImage(UIImage(systemName: "sparkles", withConfiguration: config), for: .normal)
-        button.tintColor = .white
-        button.backgroundColor = .systemPurple
-        button.layer.cornerRadius = 28
-        button.layer.shadowColor = UIColor.systemPurple.cgColor
-        button.layer.shadowOpacity = 0.3
-        button.layer.shadowOffset = CGSize(width: 0, height: 4)
-        button.layer.shadowRadius = 8
-
-        button.accessibilityLabel = "Start Agentation Capture"
-        button.accessibilityIdentifier = "agentationFAB"
-        button.addTarget(self, action: #selector(startAgentation), for: .touchUpInside)
-        return button
-    }()
-
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
@@ -242,7 +221,6 @@ final class UIKitDemoViewController: UIViewController {
     private func setupUI() {
         view.addSubview(scrollView)
         scrollView.addSubview(contentStack)
-        view.addSubview(floatingButton)
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -254,12 +232,7 @@ final class UIKitDemoViewController: UIViewController {
             contentStack.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 20),
             contentStack.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -20),
             contentStack.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -20),
-            contentStack.widthAnchor.constraint(equalTo: scrollView.widthAnchor, constant: -40),
-
-            floatingButton.widthAnchor.constraint(equalToConstant: 56),
-            floatingButton.heightAnchor.constraint(equalToConstant: 56),
-            floatingButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
-            floatingButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
+            contentStack.widthAnchor.constraint(equalTo: scrollView.widthAnchor, constant: -40)
         ])
 
         setupProfileSection()
@@ -356,11 +329,6 @@ final class UIKitDemoViewController: UIViewController {
         contentStack.addArrangedSubview(themeLabel)
         contentStack.addArrangedSubview(segmentedControl)
         contentStack.addArrangedSubview(makeDivider())
-
-        // Add spacing at the bottom for the floating button
-        let spacer = UIView()
-        spacer.heightAnchor.constraint(equalToConstant: 80).isActive = true
-        contentStack.addArrangedSubview(spacer)
     }
 
     // MARK: - Helpers
@@ -378,15 +346,5 @@ final class UIKitDemoViewController: UIViewController {
         divider.backgroundColor = .separator
         divider.heightAnchor.constraint(equalToConstant: 1).isActive = true
         return divider
-    }
-
-    // MARK: - Actions
-
-    @objc private func startAgentation() {
-        Agentation.shared.start { feedback in
-            print("=== Agentation Feedback ===")
-            print(feedback.toMarkdown())
-            print("===========================")
-        }
     }
 }

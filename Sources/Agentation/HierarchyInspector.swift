@@ -7,7 +7,17 @@ public final class HierarchyInspector {
 
     private(set) var viewLookup: [UUID: WeakViewRef] = [:]
 
+    public var ignoredWindowClassNames: Set<String> = [
+        "UITextEffectsWindow"
+    ]
+
     private init() {}
+
+    private func shouldIgnoreWindow(_ window: UIWindow) -> Bool {
+        if window is AgentationOverlayWindow { return true }
+        let className = String(describing: type(of: window))
+        return ignoredWindowClassNames.contains(className)
+    }
 
     public func captureHierarchy() -> [ElementInfo] {
         viewLookup.removeAll()
@@ -18,9 +28,7 @@ public final class HierarchyInspector {
             guard let windowScene = scene as? UIWindowScene else { continue }
 
             for window in windowScene.windows {
-                if window is AgentationOverlayWindow {
-                    continue
-                }
+                if shouldIgnoreWindow(window) { continue }
 
                 let windowElement = inspectView(
                     window,
@@ -34,7 +42,7 @@ public final class HierarchyInspector {
         return elements
     }
 
-    func view(for elementId: UUID) -> PlatformView? {
+    func view(for elementId: UUID) -> UIView? {
         viewLookup[elementId]?.view
     }
 
@@ -49,7 +57,7 @@ public final class HierarchyInspector {
         guard let window = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
             .first?.windows
-            .first(where: { !($0 is AgentationOverlayWindow) })
+            .first(where: { !shouldIgnoreWindow($0) })
         else {
             return .zero
         }
@@ -66,7 +74,8 @@ public final class HierarchyInspector {
         for scene in allScenes {
             guard let windowScene = scene as? UIWindowScene else { continue }
 
-            for window in windowScene.windows where !(window is AgentationOverlayWindow) {
+            for window in windowScene.windows {
+                if shouldIgnoreWindow(window) { continue }
                 if window.responds(to: selector) {
                     let result = window.perform(selector)
                     if let description = result?.takeUnretainedValue() as? String {
@@ -102,7 +111,7 @@ public final class HierarchyInspector {
         let baseVC = base ?? UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .flatMap { $0.windows }
-            .first { $0.isKeyWindow && !($0 is AgentationOverlayWindow) }?
+            .first { $0.isKeyWindow && !shouldIgnoreWindow($0) }?
             .rootViewController
 
         if let nav = baseVC as? UINavigationController {
@@ -123,7 +132,7 @@ public final class HierarchyInspector {
     }
 
     private func inspectView(
-        _ view: PlatformView,
+        _ view: UIView,
         parentPath: String,
         depth: Int
     ) -> ElementInfo {
@@ -173,7 +182,7 @@ public final class HierarchyInspector {
         )
     }
 
-    private func buildPathComponent(for view: PlatformView) -> String {
+    private func buildPathComponent(for view: UIView) -> String {
         if let tag = AgentationTagRegistry.shared.tag(for: view) {
             return "[\(tag)]"
         }
@@ -206,7 +215,7 @@ public final class HierarchyInspector {
 }
 
 struct WeakViewRef {
-    weak var view: PlatformView?
+    weak var view: UIView?
 }
 
 internal class AgentationOverlayWindow: UIWindow {}
@@ -219,15 +228,15 @@ public final class AgentationTagRegistry {
 
     private init() {}
 
-    public func setTag(_ tag: String, for view: PlatformView) {
+    public func setTag(_ tag: String, for view: UIView) {
         tags[ObjectIdentifier(view)] = tag
     }
 
-    public func tag(for view: PlatformView) -> String? {
+    public func tag(for view: UIView) -> String? {
         tags[ObjectIdentifier(view)]
     }
 
-    public func removeTag(for view: PlatformView) {
+    public func removeTag(for view: UIView) {
         tags.removeValue(forKey: ObjectIdentifier(view))
     }
 
