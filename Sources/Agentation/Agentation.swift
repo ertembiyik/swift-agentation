@@ -1,12 +1,9 @@
 import UIKit
 import SwiftUI
 
-// MARK: - Main Agentation Class
-
+@MainActor
 @Observable
 public final class Agentation {
-
-    // MARK: - State
 
     public enum State: Equatable {
         case idle
@@ -18,12 +15,7 @@ public final class Agentation {
         case json
     }
 
-    // MARK: - Singleton
-
-    @MainActor
     public static let shared = Agentation()
-
-    // MARK: - Observable Properties
 
     public private(set) var state: State = .idle
     public private(set) var feedback: PageFeedback = PageFeedback(pageName: "", viewportSize: .zero)
@@ -33,8 +25,6 @@ public final class Agentation {
     public var includeHiddenElements: Bool = false
     public var includeSystemViews: Bool = false
 
-    // MARK: - Computed Properties
-
     public var isCapturing: Bool {
         state == .capturing
     }
@@ -43,25 +33,13 @@ public final class Agentation {
         feedback.items.count
     }
 
-    // MARK: - Internal State
-
-    @MainActor
     private var overlayWindow: OverlayWindow?
-
-    @MainActor
     private var sceneObservationTask: Task<Void, Never>?
-
-    @MainActor
     var isToolbarVisible: Bool = true
 
     @ObservationIgnored
     var toolbarFrame: CGRect = .zero
 
-    private var onCompleteCallback: ((PageFeedback) -> Void)?
-
-    // MARK: - Initialization
-
-    @MainActor
     private init() {
         sceneObservationTask = Task { @MainActor [weak self] in
             if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
@@ -77,16 +55,12 @@ public final class Agentation {
         }
     }
 
-    // MARK: - Installation
-
-    @MainActor
     public func install(in scene: UIWindowScene? = nil) {
         let targetScene = scene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene
         guard let windowScene = targetScene else { return }
         installIfNeeded(in: windowScene)
     }
 
-    @MainActor
     private func installIfNeeded(in scene: UIWindowScene) {
         guard overlayWindow == nil else { return }
 
@@ -98,10 +72,7 @@ public final class Agentation {
         sceneObservationTask = nil
     }
 
-    // MARK: - Capture Control
-
-    @MainActor
-    public func start(onComplete: ((PageFeedback) -> Void)? = nil) {
+    public func start() {
         if state == .capturing {
             return
         }
@@ -116,14 +87,12 @@ public final class Agentation {
 
         dismissKeyboardGlobally()
 
-        onCompleteCallback = onComplete
         state = .capturing
         isPaused = false
 
         overlayWindow?.refreshHierarchy()
     }
 
-    @MainActor
     public func stop() {
         guard state == .capturing else { return }
 
@@ -133,52 +102,44 @@ public final class Agentation {
 
         state = .idle
         isPaused = false
-        onCompleteCallback?(feedback)
-        onCompleteCallback = nil
     }
 
-    @MainActor
     public func togglePause() {
         isPaused.toggle()
+
+        viewControllerHierarchy()
+
         if isPaused {
             overlayWindow?.clearHoverHighlight()
         }
     }
 
-    // MARK: - Feedback Management
-
-    @MainActor
     public func addFeedback(_ text: String, for element: ElementInfo) {
         let item = FeedbackItem(element: element, feedback: text)
         feedback.items.append(item)
         overlayWindow?.updateSelectedHighlights(for: feedback.items)
     }
 
-    @MainActor
     public func updateFeedback(_ item: FeedbackItem, with text: String) {
         guard let index = feedback.items.firstIndex(where: { $0.id == item.id }) else { return }
         let updated = FeedbackItem(id: item.id, element: item.element, feedback: text, timestamp: item.timestamp)
         feedback.items[index] = updated
     }
 
-    @MainActor
     public func feedbackItem(for element: ElementInfo) -> FeedbackItem? {
         feedback.items.first { $0.element.id == element.id }
     }
 
-    @MainActor
     public func removeFeedback(_ item: FeedbackItem) {
         feedback.items.removeAll { $0.id == item.id }
         overlayWindow?.updateSelectedHighlights(for: feedback.items)
     }
 
-    @MainActor
     public func clearFeedback() {
         feedback.items.removeAll()
         overlayWindow?.clearAllHighlights()
     }
 
-    @MainActor
     @discardableResult
     public func copyFeedback() -> String? {
         let output = formatOutput()
@@ -186,58 +147,26 @@ public final class Agentation {
         return output
     }
 
-    // MARK: - Toolbar Visibility
-
-    @MainActor
     public func showToolbar() {
         isToolbarVisible = true
     }
 
-    @MainActor
     public func hideToolbar() {
         isToolbarVisible = false
     }
 
-    // MARK: - Hierarchy Inspection
-
-    @MainActor
     public func captureHierarchy() -> [ElementInfo] {
         HierarchyInspector.shared.captureHierarchy()
     }
 
-    @MainActor
     public func debugHierarchy() -> String {
         HierarchyInspector.shared.printHierarchy()
     }
 
-    @MainActor
     public func viewControllerHierarchy() -> String {
         HierarchyInspector.shared.printViewControllerHierarchy()
     }
 
-    // MARK: - Convenience
-
-    @MainActor
-    public func quickCapture(format: OutputFormat = .markdown, completion: @escaping (String) -> Void) {
-        start { feedback in
-            let output: String
-            switch format {
-            case .markdown:
-                output = feedback.toMarkdown()
-            case .json:
-                if let data = try? feedback.toJSON(), let json = String(data: data, encoding: .utf8) {
-                    output = json
-                } else {
-                    output = feedback.toMarkdown()
-                }
-            }
-            completion(output)
-        }
-    }
-
-    // MARK: - Internal
-
-    @MainActor
     func refreshHierarchy() {
         overlayWindow?.refreshHierarchy()
     }
@@ -254,12 +183,10 @@ public final class Agentation {
         }
     }
 
-    @MainActor
     private func dismissKeyboardGlobally() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
-    @MainActor
     private func restoreKeyWindowToApp() {
         for scene in UIApplication.shared.connectedScenes {
             guard let windowScene = scene as? UIWindowScene else { continue }

@@ -50,6 +50,7 @@ public final class HierarchyInspector {
         guard let topViewController = topViewController() else {
             return "Unknown"
         }
+
         return String(describing: type(of: topViewController))
     }
 
