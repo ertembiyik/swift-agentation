@@ -34,7 +34,7 @@ final class ViewHierarchyDataSource: HierarchyDataSource {
             capturedAt: Date(),
             sourceType: .viewHierarchy,
             viewportSize: viewportSize(),
-            pageName: currentPageName()
+            screenName: currentScreenName()
         )
     }
 
@@ -43,7 +43,7 @@ final class ViewHierarchyDataSource: HierarchyDataSource {
         return .view(view)
     }
 
-    func currentPageName() -> String {
+    func currentScreenName() -> String {
         guard let topVC = topViewController() else { return "Unknown" }
         return String(describing: type(of: topVC))
     }

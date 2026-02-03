@@ -9,6 +9,7 @@ public struct FeedbackItem: Identifiable, Sendable {
     public let elementShortType: String
     public let elementFrame: CGRect
     public let elementPath: String
+    public let screenName: String
     public let createdAt: Date
 
     public init(
@@ -19,6 +20,7 @@ public struct FeedbackItem: Identifiable, Sendable {
         elementShortType: String,
         elementFrame: CGRect,
         elementPath: String,
+        screenName: String,
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -28,6 +30,7 @@ public struct FeedbackItem: Identifiable, Sendable {
         self.elementShortType = elementShortType
         self.elementFrame = elementFrame
         self.elementPath = elementPath
+        self.screenName = screenName
         self.createdAt = createdAt
     }
 }

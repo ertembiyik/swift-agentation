@@ -30,7 +30,7 @@ final class AccessibilityHierarchyDataSource: HierarchyDataSource {
             capturedAt: Date(),
             sourceType: .accessibility,
             viewportSize: viewportSize(),
-            pageName: currentPageName()
+            screenName: currentScreenName()
         )
     }
 
@@ -133,7 +133,7 @@ final class AccessibilityHierarchyDataSource: HierarchyDataSource {
         return ignoredWindowClassNames.contains(className)
     }
 
-    private func currentPageName() -> String {
+    private func currentScreenName() -> String {
         guard let topVC = topViewController() else { return "Unknown" }
         return String(describing: type(of: topVC))
     }

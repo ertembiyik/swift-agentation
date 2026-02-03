@@ -18,20 +18,12 @@ struct PreviewScreenView: View {
             Group {
                 if let session, hasFeedback {
                     List {
-                        Section {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Screen: \(session.snapshot.pageName)")
-                                    .font(.headline)
-                                Text("Frame: \(Int(session.snapshot.viewportSize.width))x\(Int(session.snapshot.viewportSize.height))")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-
-                        Section {
-                            ForEach(Array(session.feedbackItems.enumerated()), id: \.element.id) { index, item in
-                                FeedbackItemRow(index: index + 1, item: item) {
-                                    session.removeFeedback(item)
+                        ForEach(session.feedbackByScreen, id: \.screenName) { group in
+                            Section(group.screenName) {
+                                ForEach(group.items) { item in
+                                    FeedbackItemRow(item: item) {
+                                        session.removeFeedback(item)
+                                    }
                                 }
                             }
                         }
@@ -64,14 +56,13 @@ struct PreviewScreenView: View {
 }
 
 private struct FeedbackItemRow: View {
-    let index: Int
     let item: FeedbackItem
     let onDelete: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("\(index). \(item.elementShortType)")
+                Text(item.elementShortType)
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.blue)

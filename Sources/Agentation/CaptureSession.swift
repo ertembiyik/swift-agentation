@@ -32,7 +32,8 @@ public final class CaptureSession {
             elementDisplayName: element.displayName,
             elementShortType: element.shortType,
             elementFrame: element.frame,
-            elementPath: element.path
+            elementPath: element.path,
+            screenName: snapshot.screenName
         )
         feedbackItems.append(item)
     }
@@ -47,6 +48,7 @@ public final class CaptureSession {
             elementShortType: item.elementShortType,
             elementFrame: item.elementFrame,
             elementPath: item.elementPath,
+            screenName: item.screenName,
             createdAt: item.createdAt
         )
     }
@@ -72,22 +74,41 @@ public final class CaptureSession {
         return candidates.min(by: { ($0.frame.width * $0.frame.height) < ($1.frame.width * $1.frame.height) })
     }
 
+    public var feedbackByScreen: [(screenName: String, items: [FeedbackItem])] {
+        var order: [String] = []
+        var grouped: [String: [FeedbackItem]] = [:]
+
+        for item in feedbackItems {
+            if grouped[item.screenName] == nil {
+                order.append(item.screenName)
+            }
+            grouped[item.screenName, default: []].append(item)
+        }
+
+        return order.map { (screenName: $0, items: grouped[$0]!) }
+    }
+
     public func formatAsMarkdown() -> String {
-        var output = "## Page Feedback: \(snapshot.pageName)\n"
+        var output = ""
         output += "**Viewport:** \(Int(snapshot.viewportSize.width))×\(Int(snapshot.viewportSize.height))\n\n"
 
-        for (index, item) in feedbackItems.enumerated() {
-            let number = index + 1
-            let elementTitle = item.elementDisplayName.isEmpty
-                ? item.elementShortType
-                : "\(item.elementShortType) \"\(item.elementDisplayName)\""
+        var itemNumber = 1
+        for group in feedbackByScreen {
+            output += "## \(group.screenName)\n\n"
 
-            output += "### \(number). \(elementTitle)\n"
-            output += "**Location:** \(item.elementPath)\n"
+            for item in group.items {
+                let elementTitle = item.elementDisplayName.isEmpty
+                    ? item.elementShortType
+                    : "\(item.elementShortType) \"\(item.elementDisplayName)\""
 
-            let frame = item.elementFrame
-            output += "**Frame:** x:\(Int(frame.origin.x)) y:\(Int(frame.origin.y)) w:\(Int(frame.size.width)) h:\(Int(frame.size.height))\n"
-            output += "**Feedback:** \(item.text)\n\n"
+                output += "### \(itemNumber). \(elementTitle)\n"
+                output += "**Location:** \(item.elementPath)\n"
+
+                let frame = item.elementFrame
+                output += "**Frame:** x:\(Int(frame.origin.x)) y:\(Int(frame.origin.y)) w:\(Int(frame.size.width)) h:\(Int(frame.size.height))\n"
+                output += "**Feedback:** \(item.text)\n\n"
+                itemNumber += 1
+            }
         }
 
         return output
@@ -95,13 +116,17 @@ public final class CaptureSession {
 
     public func formatAsJSON() throws -> Data {
         struct Output: Encodable {
-            let page: String
             let viewport: ViewportOutput
-            let items: [ItemOutput]
+            let screens: [ScreenOutput]
 
             struct ViewportOutput: Encodable {
                 let width: Int
                 let height: Int
+            }
+
+            struct ScreenOutput: Encodable {
+                let screen: String
+                let items: [ItemOutput]
             }
 
             struct ItemOutput: Encodable {
@@ -121,23 +146,27 @@ public final class CaptureSession {
         }
 
         let output = Output(
-            page: snapshot.pageName,
             viewport: Output.ViewportOutput(
                 width: Int(snapshot.viewportSize.width),
                 height: Int(snapshot.viewportSize.height)
             ),
-            items: feedbackItems.map { item in
-                Output.ItemOutput(
-                    type: item.elementShortType,
-                    displayName: item.elementDisplayName,
-                    path: item.elementPath,
-                    frame: Output.ItemOutput.FrameOutput(
-                        x: Int(item.elementFrame.origin.x),
-                        y: Int(item.elementFrame.origin.y),
-                        width: Int(item.elementFrame.size.width),
-                        height: Int(item.elementFrame.size.height)
-                    ),
-                    feedback: item.text
+            screens: feedbackByScreen.map { group in
+                Output.ScreenOutput(
+                    screen: group.screenName,
+                    items: group.items.map { item in
+                        Output.ItemOutput(
+                            type: item.elementShortType,
+                            displayName: item.elementDisplayName,
+                            path: item.elementPath,
+                            frame: Output.ItemOutput.FrameOutput(
+                                x: Int(item.elementFrame.origin.x),
+                                y: Int(item.elementFrame.origin.y),
+                                width: Int(item.elementFrame.size.width),
+                                height: Int(item.elementFrame.size.height)
+                            ),
+                            feedback: item.text
+                        )
+                    }
                 )
             }
         )

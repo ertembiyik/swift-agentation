@@ -19,5 +19,5 @@ public struct HierarchySnapshot: Sendable {
     public let capturedAt: Date
     public let sourceType: DataSourceType
     public let viewportSize: CGSize
-    public let pageName: String
+    public let screenName: String
 }

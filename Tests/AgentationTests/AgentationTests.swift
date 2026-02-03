@@ -93,7 +93,7 @@ final class AgentationTests: XCTestCase {
             capturedAt: Date(),
             sourceType: .viewHierarchy,
             viewportSize: CGSize(width: 375, height: 812),
-            pageName: "Test"
+            screenName: "Test"
         )
 
         let session = CaptureSession(
@@ -118,11 +118,13 @@ final class AgentationTests: XCTestCase {
             elementDisplayName: "Test Label",
             elementShortType: "text",
             elementFrame: CGRect(x: 10, y: 20, width: 100, height: 30),
-            elementPath: ".View > .Label"
+            elementPath: ".View > .Label",
+            screenName: "/Home"
         )
 
         XCTAssertEqual(item.elementDisplayName, "Test Label")
         XCTAssertEqual(item.text, "Change the text color")
+        XCTAssertEqual(item.screenName, "/Home")
     }
 
     @MainActor
@@ -132,7 +134,7 @@ final class AgentationTests: XCTestCase {
             capturedAt: Date(),
             sourceType: .viewHierarchy,
             viewportSize: CGSize(width: 375, height: 812),
-            pageName: "/Home"
+            screenName: "/Home"
         )
 
         let session = CaptureSession(
@@ -157,7 +159,7 @@ final class AgentationTests: XCTestCase {
 
         let markdown = session.formatAsMarkdown()
 
-        XCTAssertTrue(markdown.contains("## Page Feedback: /Home"))
+        XCTAssertTrue(markdown.contains("## /Home"))
         XCTAssertTrue(markdown.contains("**Viewport:** 375×812"))
         XCTAssertTrue(markdown.contains("Make this larger"))
         XCTAssertTrue(markdown.contains("Change to green"))
@@ -170,7 +172,7 @@ final class AgentationTests: XCTestCase {
             capturedAt: Date(),
             sourceType: .viewHierarchy,
             viewportSize: CGSize(width: 414, height: 896),
-            pageName: "/Settings"
+            screenName: "/Settings"
         )
 
         let session = CaptureSession(
@@ -189,13 +191,15 @@ final class AgentationTests: XCTestCase {
         let jsonData = try session.formatAsJSON()
         let json = try JSONSerialization.jsonObject(with: jsonData) as! [String: Any]
 
-        XCTAssertEqual(json["page"] as? String, "/Settings")
-
         let viewport = json["viewport"] as! [String: Int]
         XCTAssertEqual(viewport["width"], 414)
         XCTAssertEqual(viewport["height"], 896)
 
-        let items = json["items"] as! [[String: Any]]
+        let screens = json["screens"] as! [[String: Any]]
+        XCTAssertEqual(screens.count, 1)
+        XCTAssertEqual(screens[0]["screen"] as? String, "/Settings")
+
+        let items = screens[0]["items"] as! [[String: Any]]
         XCTAssertEqual(items.count, 1)
         XCTAssertEqual(items[0]["type"] as? String, "toggle")
         XCTAssertEqual(items[0]["displayName"] as? String, "Dark Mode")
@@ -210,7 +214,7 @@ private final class MockDataSource: HierarchyDataSource {
             capturedAt: Date(),
             sourceType: .viewHierarchy,
             viewportSize: .zero,
-            pageName: "Mock"
+            screenName: "Mock"
         )
     }
 
