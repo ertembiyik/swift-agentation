@@ -34,11 +34,6 @@ final class AccessibilityHierarchyDataSource: HierarchyDataSource {
         )
     }
 
-    func resolve(elementId: UUID) -> ElementResolution? {
-        guard let frame = frameLookup[elementId] else { return nil }
-        return .frame(frame)
-    }
-
     private func collectAccessibleElements(_ element: NSObject, parentPath: String, depth: Int) -> [AccessibilityElementInfo] {
         guard depth < 50 else { return [] }
 

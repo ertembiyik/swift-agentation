@@ -26,7 +26,8 @@ final class OverlayWindow: UIWindow {
         self.backgroundColor = .clear
         self.isUserInteractionEnabled = true
 
-        rootVC.view.addSubview(toolbarHostingView)
+        self.addSubview(toolbarHostingView)
+        self.bringSubviewToFront(toolbarHostingView)
     }
 
     required init?(coder: NSCoder) {

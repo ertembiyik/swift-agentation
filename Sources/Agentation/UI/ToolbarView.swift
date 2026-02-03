@@ -289,9 +289,3 @@ private struct ToolbarDivider: View {
             .padding(.horizontal, 2)
     }
 }
-
-
-#Preview("Toolbar - Collapsed") {
-    ToolbarView()
-        .background(.gray.opacity(0.3))
-}

@@ -38,11 +38,6 @@ final class ViewHierarchyDataSource: HierarchyDataSource {
         )
     }
 
-    func resolve(elementId: UUID) -> ElementResolution? {
-        guard let view = viewLookup[elementId]?.view else { return nil }
-        return .view(view)
-    }
-
     func currentScreenName() -> String {
         guard let topVC = topViewController() else { return "Unknown" }
         return String(describing: type(of: topVC))
