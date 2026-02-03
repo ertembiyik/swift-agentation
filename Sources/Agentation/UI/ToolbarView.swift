@@ -106,10 +106,10 @@ struct ToolbarView: View, HitTestable {
     private var expanded: some View {
         HStack(spacing: 0) {
             ToolbarButton(
-                icon: Agentation.shared.isPaused ? "play.fill" : "pause.fill",
-                label: Agentation.shared.isPaused ? "Resume" : "Pause"
+                icon: Agentation.shared.activeSession?.isPaused == true ? "play.fill" : "pause.fill",
+                label: Agentation.shared.activeSession?.isPaused == true ? "Resume" : "Pause"
             ) {
-                if Agentation.shared.isPaused {
+                if Agentation.shared.activeSession?.isPaused == true {
                     Task { await Agentation.shared.resume() }
                 } else {
                     Agentation.shared.pause()

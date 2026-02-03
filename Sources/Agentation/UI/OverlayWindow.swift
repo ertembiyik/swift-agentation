@@ -59,14 +59,11 @@ final class OverlayWindow: UIWindow {
 private struct OverlayRootView: View {
 
     var body: some View {
-        ZStack {
-            switch Agentation.shared.state {
-            case .idle:
-                EmptyView()
-            case .capturing(let session):
-                CaptureOverlayView(session: session)
-            case .paused(let session):
+        if let session = Agentation.shared.activeSession {
+            if session.isPaused {
                 PausedOverlayView(session: session)
+            } else {
+                CaptureOverlayView(session: session)
             }
         }
     }

@@ -57,6 +57,7 @@ struct CaptureOverlayView: View {
                 },
                 onCancel: {}
             )
+            .presentationDetents([.medium])
         }
     }
 

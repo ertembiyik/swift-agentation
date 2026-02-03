@@ -8,7 +8,6 @@ public final class Agentation {
     public enum State {
         case idle
         case capturing(CaptureSession)
-        case paused(CaptureSession)
     }
 
     public enum OutputFormat: String, CaseIterable, Sendable {
@@ -33,7 +32,7 @@ public final class Agentation {
     private var overlayWindow: OverlayWindow?
     private var sceneObservationTask: Task<Void, Never>?
 
-    public var selectedDataSourceType: DataSourceType = .viewHierarchy
+    public var selectedDataSourceType: DataSourceType = .accessibility
 
     private let viewDataSource = ViewHierarchyDataSource()
     private let accessibilityDataSource = AccessibilityHierarchyDataSource()
@@ -46,28 +45,17 @@ public final class Agentation {
     }
 
     public var activeSession: CaptureSession? {
-        switch state {
-        case .idle: return nil
-        case .capturing(let session): return session
-        case .paused(let session): return session
-        }
+        if case .capturing(let session) = state { return session }
+        return nil
     }
 
     public var isCapturing: Bool {
-        if case .capturing = state { return true }
-        return false
-    }
-
-    public var isPaused: Bool {
-        if case .paused = state { return true }
-        return false
+        guard let session = activeSession else { return false }
+        return !session.isPaused
     }
 
     public var isActive: Bool {
-        switch state {
-        case .idle: return false
-        case .capturing, .paused: return true
-        }
+        activeSession != nil
     }
 
     public var annotationCount: Int {
@@ -131,20 +119,19 @@ public final class Agentation {
     }
 
     public func pause() {
-        guard case .capturing(let session) = state else { return }
+        guard let session = activeSession, !session.isPaused else { return }
         session.selectedElement = nil
-        state = .paused(session)
+        session.isPaused = true
     }
 
     public func resume() async {
-        guard case .paused(let session) = state else { return }
+        guard let session = activeSession, session.isPaused else { return }
 
         let snapshot = await dataSource.capture()
 
         session.snapshot = snapshot
         session.selectedElement = nil
-
-        state = .capturing(session)
+        session.isPaused = false
     }
 
     @discardableResult

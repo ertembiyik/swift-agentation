@@ -6,6 +6,7 @@ public final class CaptureSession {
 
     let dataSource: any HierarchyDataSource
     public internal(set) var snapshot: HierarchySnapshot
+    public internal(set) var isPaused: Bool = false
     public internal(set) var selectedElement: SnapshotElement?
     public private(set) var feedbackItems: [FeedbackItem]
     public let startedAt: Date
