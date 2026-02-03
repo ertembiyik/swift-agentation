@@ -5,9 +5,10 @@ import SwiftUI
 @Observable
 public final class Agentation {
 
-    public enum State: Equatable {
+    public enum State {
         case idle
-        case capturing
+        case capturing(CaptureSession)
+        case paused(CaptureSession)
     }
 
     public enum OutputFormat: String, CaseIterable, Sendable {
@@ -18,27 +19,60 @@ public final class Agentation {
     public static let shared = Agentation()
 
     public private(set) var state: State = .idle
-    public private(set) var feedback: PageFeedback = PageFeedback(pageName: "", viewportSize: .zero)
-    public private(set) var isPaused: Bool = false
+    public private(set) var lastSession: CaptureSession?
 
     public var outputFormat: OutputFormat = .markdown
     public var includeHiddenElements: Bool = false
     public var includeSystemViews: Bool = false
 
-    public var isCapturing: Bool {
-        state == .capturing
-    }
-
-    public var annotationCount: Int {
-        feedback.items.count
-    }
-
-    private var overlayWindow: OverlayWindow?
-    private var sceneObservationTask: Task<Void, Never>?
     var isToolbarVisible: Bool = true
 
     @ObservationIgnored
     var toolbarFrame: CGRect = .zero
+
+    private var overlayWindow: OverlayWindow?
+    private var sceneObservationTask: Task<Void, Never>?
+
+    public var selectedDataSourceType: DataSourceType = .viewHierarchy
+
+    private let viewDataSource = ViewHierarchyDataSource()
+    private let accessibilityDataSource = AccessibilityHierarchyDataSource()
+
+    var dataSource: any HierarchyDataSource {
+        switch selectedDataSourceType {
+        case .viewHierarchy: viewDataSource
+        case .accessibility: accessibilityDataSource
+        }
+    }
+
+    public var activeSession: CaptureSession? {
+        switch state {
+        case .idle: return nil
+        case .capturing(let session): return session
+        case .paused(let session): return session
+        }
+    }
+
+    public var isCapturing: Bool {
+        if case .capturing = state { return true }
+        return false
+    }
+
+    public var isPaused: Bool {
+        if case .paused = state { return true }
+        return false
+    }
+
+    public var isActive: Bool {
+        switch state {
+        case .idle: return false
+        case .capturing, .paused: return true
+        }
+    }
+
+    public var annotationCount: Int {
+        activeSession?.annotationCount ?? lastSession?.annotationCount ?? 0
+    }
 
     private init() {
         sceneObservationTask = Task { @MainActor [weak self] in
@@ -63,127 +97,97 @@ public final class Agentation {
 
     private func installIfNeeded(in scene: UIWindowScene) {
         guard overlayWindow == nil else { return }
-
         let window = OverlayWindow(scene: scene)
         window.isHidden = false
         overlayWindow = window
-
         sceneObservationTask?.cancel()
         sceneObservationTask = nil
     }
 
-    public func start() {
-        if state == .capturing {
-            return
-        }
-
-        let inspector = HierarchyInspector.shared
-        if feedback.items.isEmpty {
-            feedback = PageFeedback(
-                pageName: inspector.currentPageName(),
-                viewportSize: inspector.viewportSize()
-            )
-        }
+    public func start() async {
+        guard case .idle = state else { return }
 
         dismissKeyboardGlobally()
 
-        state = .capturing
-        isPaused = false
+        let snapshot = await dataSource.capture()
 
-        overlayWindow?.refreshHierarchy()
+        let feedbackItems = lastSession?.feedbackItems ?? []
+
+        let session = CaptureSession(
+            dataSource: dataSource,
+            snapshot: snapshot,
+            feedbackItems: feedbackItems,
+            startedAt: Date()
+        )
+
+        state = .capturing(session)
     }
 
     public func stop() {
-        guard state == .capturing else { return }
-
-        overlayWindow?.endEditing(true)
-        overlayWindow?.clearHoverHighlight()
-
+        guard let session = activeSession else { return }
+        lastSession = session
         state = .idle
-        isPaused = false
+        overlayWindow?.endEditing(true)
     }
 
-    public func togglePause() {
-        isPaused.toggle()
-
-        viewControllerHierarchy()
-
-        if isPaused {
-            overlayWindow?.clearHoverHighlight()
-        }
+    public func pause() {
+        guard case .capturing(let session) = state else { return }
+        session.selectedElement = nil
+        state = .paused(session)
     }
 
-    public func addFeedback(_ text: String, for element: ElementInfo) {
-        let item = FeedbackItem(element: element, feedback: text)
-        feedback.items.append(item)
-        overlayWindow?.updateSelectedHighlights(for: feedback.items)
-    }
+    public func resume() async {
+        guard case .paused(let session) = state else { return }
 
-    public func updateFeedback(_ item: FeedbackItem, with text: String) {
-        guard let index = feedback.items.firstIndex(where: { $0.id == item.id }) else { return }
-        let updated = FeedbackItem(id: item.id, element: item.element, feedback: text, timestamp: item.timestamp)
-        feedback.items[index] = updated
-    }
+        let snapshot = await dataSource.capture()
 
-    public func feedbackItem(for element: ElementInfo) -> FeedbackItem? {
-        feedback.items.first { $0.element.id == element.id }
-    }
+        session.snapshot = snapshot
+        session.selectedElement = nil
 
-    public func removeFeedback(_ item: FeedbackItem) {
-        feedback.items.removeAll { $0.id == item.id }
-        overlayWindow?.updateSelectedHighlights(for: feedback.items)
-    }
-
-    public func clearFeedback() {
-        feedback.items.removeAll()
-        overlayWindow?.clearAllHighlights()
+        state = .capturing(session)
     }
 
     @discardableResult
     public func copyFeedback() -> String? {
-        let output = formatOutput()
+        guard let session = activeSession ?? lastSession else { return nil }
+        let output = formatOutput(for: session)
         UIPasteboard.general.string = output
         return output
     }
 
-    public func showToolbar() {
-        isToolbarVisible = true
+    public func clearFeedback() {
+        activeSession?.clearFeedback()
     }
 
-    public func hideToolbar() {
-        isToolbarVisible = false
-    }
+    public func showToolbar() { isToolbarVisible = true }
+    public func hideToolbar() { isToolbarVisible = false }
 
-    public func captureHierarchy() -> [ElementInfo] {
-        HierarchyInspector.shared.captureHierarchy()
+    public func captureHierarchy() async -> HierarchySnapshot {
+        await dataSource.capture()
     }
 
     public func debugHierarchy() -> String {
-        HierarchyInspector.shared.printHierarchy()
+        viewDataSource.printHierarchy()
     }
 
+    @discardableResult
     public func viewControllerHierarchy() -> String {
-        HierarchyInspector.shared.printViewControllerHierarchy()
+        viewDataSource.printViewControllerHierarchy()
     }
 
-    func refreshHierarchy() {
-        overlayWindow?.refreshHierarchy()
-    }
-
-    private func formatOutput() -> String {
+    private func formatOutput(for session: CaptureSession) -> String {
         switch outputFormat {
         case .markdown:
-            return feedback.toMarkdown()
+            return session.formatAsMarkdown()
         case .json:
-            if let data = try? feedback.toJSON(), let json = String(data: data, encoding: .utf8) {
+            if let data = try? session.formatAsJSON(), let json = String(data: data, encoding: .utf8) {
                 return json
             }
-            return feedback.toMarkdown()
+            return session.formatAsMarkdown()
         }
     }
 
     private func dismissKeyboardGlobally() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
-
 }

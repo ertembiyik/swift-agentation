@@ -1,20 +1,33 @@
+import CoreGraphics
 import Foundation
 
 public struct FeedbackItem: Identifiable, Sendable {
     public let id: UUID
-    public let element: ElementInfo
-    public let feedback: String
-    public let timestamp: Date
+    public let elementId: UUID
+    public let text: String
+    public let elementDisplayName: String
+    public let elementShortType: String
+    public let elementFrame: CGRect
+    public let elementPath: String
+    public let createdAt: Date
 
     public init(
         id: UUID = UUID(),
-        element: ElementInfo,
-        feedback: String,
-        timestamp: Date = Date()
+        elementId: UUID,
+        text: String,
+        elementDisplayName: String,
+        elementShortType: String,
+        elementFrame: CGRect,
+        elementPath: String,
+        createdAt: Date = Date()
     ) {
         self.id = id
-        self.element = element
-        self.feedback = feedback
-        self.timestamp = timestamp
+        self.elementId = elementId
+        self.text = text
+        self.elementDisplayName = elementDisplayName
+        self.elementShortType = elementShortType
+        self.elementFrame = elementFrame
+        self.elementPath = elementPath
+        self.createdAt = createdAt
     }
 }

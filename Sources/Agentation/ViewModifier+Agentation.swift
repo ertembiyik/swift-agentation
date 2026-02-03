@@ -34,7 +34,6 @@ internal final class AgentationTagView: UIView {
 
     override func didMoveToSuperview() {
         super.didMoveToSuperview()
-        
         updateTagRegistration()
     }
 
@@ -80,6 +79,27 @@ public extension View {
     }
 }
 
-public protocol AgentationScreenNaming {
-    var agentationScreenName: String { get }
+@MainActor
+public final class AgentationTagRegistry {
+    public static let shared = AgentationTagRegistry()
+
+    private var tags: [ObjectIdentifier: String] = [:]
+
+    private init() {}
+
+    public func setTag(_ tag: String, for view: UIView) {
+        tags[ObjectIdentifier(view)] = tag
+    }
+
+    public func tag(for view: UIView) -> String? {
+        tags[ObjectIdentifier(view)]
+    }
+
+    public func removeTag(for view: UIView) {
+        tags.removeValue(forKey: ObjectIdentifier(view))
+    }
+
+    public func clearAll() {
+        tags.removeAll()
+    }
 }

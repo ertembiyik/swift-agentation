@@ -4,40 +4,45 @@ struct PreviewScreenView: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    private var session: CaptureSession? {
+        Agentation.shared.activeSession ?? Agentation.shared.lastSession
+    }
+
     private var hasFeedback: Bool {
-        !Agentation.shared.feedback.items.isEmpty
+        guard let session else { return false }
+        return !session.feedbackItems.isEmpty
     }
 
     var body: some View {
         NavigationStack {
             Group {
-                if !hasFeedback {
-                    ContentUnavailableView(
-                        "No Feedback Yet",
-                        systemImage: "doc.text",
-                        description: Text("Tap on elements to add feedback")
-                    )
-                } else {
+                if let session, hasFeedback {
                     List {
                         Section {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Screen: \(Agentation.shared.feedback.pageName)")
+                                Text("Screen: \(session.snapshot.pageName)")
                                     .font(.headline)
-                                Text("Frame: \(Int(Agentation.shared.feedback.viewportSize.width))x\(Int(Agentation.shared.feedback.viewportSize.height))")
+                                Text("Frame: \(Int(session.snapshot.viewportSize.width))x\(Int(session.snapshot.viewportSize.height))")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             }
                         }
 
                         Section {
-                            ForEach(Array(Agentation.shared.feedback.items.enumerated()), id: \.element.id) { index, item in
+                            ForEach(Array(session.feedbackItems.enumerated()), id: \.element.id) { index, item in
                                 FeedbackItemRow(index: index + 1, item: item) {
-                                    Agentation.shared.removeFeedback(item)
+                                    session.removeFeedback(item)
                                 }
                             }
                         }
                     }
                     .listStyle(.insetGrouped)
+                } else {
+                    ContentUnavailableView(
+                        "No Feedback Yet",
+                        systemImage: "doc.text",
+                        description: Text("Tap on elements to add feedback")
+                    )
                 }
             }
             .navigationTitle("Feedback Preview")
@@ -66,12 +71,12 @@ private struct FeedbackItemRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("\(index). \(item.element.shortType)")
+                Text("\(index). \(item.elementShortType)")
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.blue)
 
-                Text(item.element.displayName)
+                Text(item.elementDisplayName)
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .lineLimit(1)
@@ -79,13 +84,13 @@ private struct FeedbackItemRow: View {
                 Spacer()
             }
 
-            Text(item.element.path)
+            Text(item.elementPath)
                 .font(.caption)
                 .fontDesign(.monospaced)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
 
-            Text(item.feedback)
+            Text(item.text)
                 .font(.subheadline)
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)

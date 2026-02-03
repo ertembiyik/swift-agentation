@@ -34,10 +34,8 @@ struct ToolbarView: View, HitTestable {
             }, action: { newValue in
                 geometryInfo = newValue
             })
-            .onChange(of: Agentation.shared.isCapturing) { oldValue, newValue in
-                guard geometryInfo.rect != .zero else {
-                    return
-                }
+            .onChange(of: Agentation.shared.isActive) { oldValue, newValue in
+                guard geometryInfo.rect != .zero else { return }
 
                 let position = position ?? defaultPosition(in: geometryInfo)
 
@@ -55,7 +53,7 @@ struct ToolbarView: View, HitTestable {
                     }
                 }
             }
-            .animation(.spring(response: 0.4, dampingFraction: 0.75), value: Agentation.shared.isCapturing)
+            .animation(.spring(response: 0.4, dampingFraction: 0.75), value: Agentation.shared.isActive)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: dragState)
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: Agentation.shared.isToolbarVisible)
             .sheet(isPresented: $showingPreview) {
@@ -69,7 +67,7 @@ struct ToolbarView: View, HitTestable {
 
     private var toolbarContent: some View {
         UniversalGlassEffectContainer {
-            if Agentation.shared.isCapturing {
+            if Agentation.shared.isActive {
                 expanded
                     .universalGlassEffect(.regular.interactive(), in: .capsule)
                     .universalGlassEffectUnion(id: "agentationToolbar", namespace: morphNamespace)
@@ -89,7 +87,7 @@ struct ToolbarView: View, HitTestable {
 
     private var collapsed: some View {
         Button {
-            Agentation.shared.start()
+            Task { await Agentation.shared.start() }
         } label: {
             Image(systemName: "sparkles")
                 .font(.system(size: 20, weight: .semibold))
@@ -111,7 +109,11 @@ struct ToolbarView: View, HitTestable {
                 icon: Agentation.shared.isPaused ? "play.fill" : "pause.fill",
                 label: Agentation.shared.isPaused ? "Resume" : "Pause"
             ) {
-                Agentation.shared.togglePause()
+                if Agentation.shared.isPaused {
+                    Task { await Agentation.shared.resume() }
+                } else {
+                    Agentation.shared.pause()
+                }
             }
 
             ToolbarDivider()
@@ -149,8 +151,6 @@ struct ToolbarView: View, HitTestable {
         .padding(.vertical, 6)
     }
 
-    // MARK: - HitTestable
-
     func contains(_ point: CGPoint) -> Bool {
         Agentation.shared.toolbarFrame.contains(point)
     }
@@ -169,7 +169,7 @@ struct ToolbarView: View, HitTestable {
         let safeArea = geometryInfo.safeAreaInsets
         let margin: CGFloat = 8
 
-        let effectiveWidth = Agentation.shared.isCapturing ? 300 : Self.size
+        let effectiveWidth = Agentation.shared.isActive ? 300 : Self.size
         let halfWidth = effectiveWidth / 2
         let halfHeight = Self.size / 2
 
@@ -187,7 +187,7 @@ struct ToolbarView: View, HitTestable {
     private func snapToEdge(_ point: CGPoint, in geometryInfo: GeometryInfo) -> CGPoint {
         let safeArea = geometryInfo.safeAreaInsets
         let margin: CGFloat = 16
-        let effectiveWidth = Agentation.shared.isCapturing ? 300 : Self.size
+        let effectiveWidth = Agentation.shared.isActive ? 300 : Self.size
         let halfWidth = effectiveWidth / 2
 
         let leftEdge = safeArea.leading + halfWidth + margin

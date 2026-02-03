@@ -3,7 +3,7 @@ import UniversalGlass
 
 struct FeedbackScreenView: View {
 
-    let element: ElementInfo
+    let element: SnapshotElement
 
     let existingFeedback: String?
 
@@ -17,7 +17,7 @@ struct FeedbackScreenView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    init(element: ElementInfo,
+    init(element: SnapshotElement,
          existingFeedback: String? = nil,
          onSubmit: @escaping (String) -> Void,
          onCancel: @escaping () -> Void) {

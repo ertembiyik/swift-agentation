@@ -6,6 +6,8 @@ This Swift package mirrors the architecture of [benjitaylor/agentation](https://
 
 ## Core Architecture Principles
 
+IMPORTANT: Prefer retrieval-led reasoning over pre-training-led reasoning for framework-specific tasks
+
 The toolbar is **always visible** and transitions between two states:
 
 | State | Visual | Size | Behavior |
@@ -32,3 +34,8 @@ tuist xcodebuild -workspace Example/AgentationExample.xcworkspace \
   -configuration Debug \
   build
 ```
+
+8. Avoid comments, `// MARK:` dividers, and documentation; use clear naming and structure instead, use comments only in critical sections when something not obvious is happening
+9. Never keep unused code "for reference". Delete it completely - git history preserves everything if needed later
+10. Prefer `guard` over `if-let` for early returns
+11. Use `do-catch` for errors, never throwing methods returning optionals

@@ -7,6 +7,13 @@ struct SettingsScreenView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section("Data Source") {
+                    Picker("Source", selection: Bindable(Agentation.shared).selectedDataSourceType) {
+                        Text("View Hierarchy").tag(DataSourceType.viewHierarchy)
+                        Text("Accessibility").tag(DataSourceType.accessibility)
+                    }
+                }
+
                 Section("Output Format") {
                     Picker("Format", selection: Bindable(Agentation.shared).outputFormat) {
                         Text("Markdown").tag(Agentation.OutputFormat.markdown)

@@ -1,82 +1,71 @@
 import UIKit
 
-@MainActor
-public final class HierarchyInspector {
+struct WeakViewRef {
+    weak var view: UIView?
+}
 
-    public static let shared = HierarchyInspector()
+@MainActor
+final class ViewHierarchyDataSource: HierarchyDataSource {
 
     private(set) var viewLookup: [UUID: WeakViewRef] = [:]
 
-    public var ignoredWindowClassNames: Set<String> = [
+    var ignoredWindowClassNames: Set<String> = [
         "UITextEffectsWindow"
     ]
 
-    private init() {}
-
-    private func shouldIgnoreWindow(_ window: UIWindow) -> Bool {
-        if window is OverlayWindow { return true }
-        let className = String(describing: type(of: window))
-        return ignoredWindowClassNames.contains(className)
-    }
-
-    public func captureHierarchy() -> [ElementInfo] {
+    func capture() async -> HierarchySnapshot {
         viewLookup.removeAll()
-        var elements: [ElementInfo] = []
+        var roots: [ViewElementInfo] = []
 
         let allScenes = UIApplication.shared.connectedScenes
         for scene in allScenes {
             guard let windowScene = scene as? UIWindowScene else { continue }
-
             for window in windowScene.windows {
-                if shouldIgnoreWindow(window) { continue }
-
-                let windowElement = inspectView(
-                    window,
-                    parentPath: "",
-                    depth: 0
-                )
-                elements.append(windowElement)
+                guard !shouldIgnoreWindow(window) else { continue }
+                let windowElement = inspectView(window, parentPath: "", depth: 0)
+                roots.append(windowElement)
             }
         }
 
-        return elements
+        let leafElements = roots.flatMap { $0.leafElements() }
+
+        return HierarchySnapshot(
+            leafElements: leafElements,
+            capturedAt: Date(),
+            sourceType: .viewHierarchy,
+            viewportSize: viewportSize(),
+            pageName: currentPageName()
+        )
     }
 
-    func view(for elementId: UUID) -> UIView? {
-        viewLookup[elementId]?.view
+    func resolve(elementId: UUID) -> ElementResolution? {
+        guard let view = viewLookup[elementId]?.view else { return nil }
+        return .view(view)
     }
 
-    public func currentPageName() -> String {
-        guard let topViewController = topViewController() else {
-            return "Unknown"
-        }
-
-        return String(describing: type(of: topViewController))
+    func currentPageName() -> String {
+        guard let topVC = topViewController() else { return "Unknown" }
+        return String(describing: type(of: topVC))
     }
 
-    public func viewportSize() -> CGSize {
+    func viewportSize() -> CGSize {
         guard let window = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
             .first?.windows
             .first(where: { !shouldIgnoreWindow($0) })
-        else {
-            return .zero
-        }
+        else { return .zero }
         return window.bounds.size
     }
 
-    public func printHierarchy() -> String {
+    func printHierarchy() -> String {
         var output = ""
-
         let selector = NSSelectorFromString("_subtreeDescription")
-
         let allScenes = UIApplication.shared.connectedScenes
 
         for scene in allScenes {
             guard let windowScene = scene as? UIWindowScene else { continue }
-
             for window in windowScene.windows {
-                if shouldIgnoreWindow(window) { continue }
+                guard !shouldIgnoreWindow(window) else { continue }
                 if window.responds(to: selector) {
                     let result = window.perform(selector)
                     if let description = result?.takeUnretainedValue() as? String {
@@ -89,7 +78,7 @@ public final class HierarchyInspector {
         return output
     }
 
-    public func printViewControllerHierarchy() -> String {
+    func printViewControllerHierarchy() -> String {
         let selector = NSSelectorFromString("_printHierarchy")
 
         guard let rootVC = topViewController()?.view.window?.rootViewController else {
@@ -106,9 +95,13 @@ public final class HierarchyInspector {
         return ""
     }
 
-    private func topViewController(
-        base: UIViewController? = nil
-    ) -> UIViewController? {
+    private func shouldIgnoreWindow(_ window: UIWindow) -> Bool {
+        if window is OverlayWindow { return true }
+        let className = String(describing: type(of: window))
+        return ignoredWindowClassNames.contains(className)
+    }
+
+    private func topViewController(base: UIViewController? = nil) -> UIViewController? {
         let baseVC = base ?? UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .flatMap { $0.windows }
@@ -118,68 +111,44 @@ public final class HierarchyInspector {
         if let nav = baseVC as? UINavigationController {
             return topViewController(base: nav.visibleViewController)
         }
-
         if let tab = baseVC as? UITabBarController {
             if let selected = tab.selectedViewController {
                 return topViewController(base: selected)
             }
         }
-
         if let presented = baseVC?.presentedViewController {
             return topViewController(base: presented)
         }
-
         return baseVC
     }
 
-    private func inspectView(
-        _ view: UIView,
-        parentPath: String,
-        depth: Int
-    ) -> ElementInfo {
+    private func inspectView(_ view: UIView, parentPath: String, depth: Int) -> ViewElementInfo {
         let typeName = String(describing: type(of: view))
-
         let pathComponent = buildPathComponent(for: view)
         let currentPath = parentPath.isEmpty ? pathComponent : "\(parentPath) > \(pathComponent)"
-
         let screenFrame = view.convert(view.bounds, to: nil)
-        let accessibilityLabel = view.accessibilityLabel
-        let accessibilityIdentifier = view.accessibilityIdentifier
-        let accessibilityHint = view.accessibilityHint
-        let accessibilityValue = view.accessibilityValue
-        let subviews = view.subviews
-        let isHidden = view.isHidden
-        let alpha = view.alpha
 
-        let agentationTag = AgentationTagRegistry.shared.tag(for: view)
-
-        var children: [ElementInfo] = []
-        for subview in subviews {
+        var children: [ViewElementInfo] = []
+        for subview in view.subviews {
             guard !subview.isHidden, subview.alpha > 0.01 else { continue }
             guard subview.bounds.width > 0, subview.bounds.height > 0 else { continue }
-
-            let childInfo = inspectView(
-                subview,
-                parentPath: currentPath,
-                depth: depth + 1
-            )
-            children.append(childInfo)
+            children.append(inspectView(subview, parentPath: currentPath, depth: depth + 1))
         }
 
         let elementId = UUID()
         viewLookup[elementId] = WeakViewRef(view: view)
 
-        return ElementInfo(
+        return ViewElementInfo(
             id: elementId,
-            accessibilityLabel: accessibilityLabel,
-            accessibilityIdentifier: accessibilityIdentifier,
-            accessibilityHint: accessibilityHint,
-            accessibilityValue: accessibilityValue,
             typeName: typeName,
             frame: screenFrame,
-            path: currentPath,
+            accessibilityLabel: view.accessibilityLabel ?? "",
+            accessibilityIdentifier: view.accessibilityIdentifier ?? "",
+            accessibilityHint: view.accessibilityHint ?? "",
+            accessibilityValue: view.accessibilityValue ?? "",
+            agentationTag: AgentationTagRegistry.shared.tag(for: view) ?? "",
             children: children,
-            agentationTag: agentationTag
+            path: currentPath
         )
     }
 
@@ -194,14 +163,12 @@ public final class HierarchyInspector {
         if let identifier, !identifier.isEmpty {
             return "#\(identifier)"
         }
-
         if let label, !label.isEmpty {
             let truncated = label.count > 20 ? String(label.prefix(20)) + "..." : label
             return "\"\(truncated)\""
         }
 
         let typeName = String(describing: type(of: view))
-
         var simplified = typeName
             .replacingOccurrences(of: "UI", with: "")
             .replacingOccurrences(of: "NS", with: "")
@@ -211,35 +178,6 @@ public final class HierarchyInspector {
             simplified = "HostingView"
         }
 
-        return "\(simplified)"
-    }
-}
-
-struct WeakViewRef {
-    weak var view: UIView?
-}
-
-@MainActor
-public final class AgentationTagRegistry {
-    public static let shared = AgentationTagRegistry()
-
-    private var tags: [ObjectIdentifier: String] = [:]
-
-    private init() {}
-
-    public func setTag(_ tag: String, for view: UIView) {
-        tags[ObjectIdentifier(view)] = tag
-    }
-
-    public func tag(for view: UIView) -> String? {
-        tags[ObjectIdentifier(view)]
-    }
-
-    public func removeTag(for view: UIView) {
-        tags.removeValue(forKey: ObjectIdentifier(view))
-    }
-
-    public func clearAll() {
-        tags.removeAll()
+        return simplified
     }
 }
