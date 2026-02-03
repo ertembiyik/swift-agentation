@@ -3,6 +3,10 @@ import SwiftUI
 
 final class OverlayWindow: UIWindow {
 
+    override var canBecomeKey: Bool {
+        Agentation.shared.isCapturing
+    }
+
     private var hoverHighlightView: ElementHighlightView?
     private var selectedHighlightViews: [UUID: ElementHighlightView] = [:]
 
@@ -21,7 +25,7 @@ final class OverlayWindow: UIWindow {
         rootVC.view.addSubview(toolbarHostingView)
         self.toolbarHostingView = toolbarHostingView
 
-        super.init(frame: scene.screen.bounds)
+        super.init(windowScene: scene)
 
         self.rootViewController = rootVC
         self.windowScene = scene

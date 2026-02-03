@@ -98,7 +98,6 @@ public final class Agentation {
 
         overlayWindow?.endEditing(true)
         overlayWindow?.clearHoverHighlight()
-        restoreKeyWindowToApp()
 
         state = .idle
         isPaused = false
@@ -187,15 +186,4 @@ public final class Agentation {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
-    private func restoreKeyWindowToApp() {
-        for scene in UIApplication.shared.connectedScenes {
-            guard let windowScene = scene as? UIWindowScene else { continue }
-            for window in windowScene.windows where !(window is OverlayWindow) {
-                if window.canBecomeKey {
-                    window.makeKeyAndVisible()
-                    return
-                }
-            }
-        }
-    }
 }
