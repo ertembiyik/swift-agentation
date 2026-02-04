@@ -7,17 +7,12 @@ final class OverlayWindow: UIWindow {
         Agentation.shared.isCapturing
     }
 
-    private var overlayHostingController: UIHostingController<OverlayRootView>
-    private var toolbarHostingView: PassThroughHostingView<ToolbarView>
+    private var overlayHostingController: PassThroughHostingViewController<OverlayRootView>
 
     init(scene: UIWindowScene) {
-        let rootVC = UIHostingController(rootView: OverlayRootView())
+        let rootVC = PassThroughHostingViewController(rootView: OverlayRootView())
         rootVC.view.backgroundColor = .clear
         self.overlayHostingController = rootVC
-
-        let toolbarView = ToolbarView()
-        let toolbarHostingView = PassThroughHostingView(rootView: toolbarView)
-        self.toolbarHostingView = toolbarHostingView
 
         super.init(windowScene: scene)
 
@@ -25,27 +20,19 @@ final class OverlayWindow: UIWindow {
         self.windowLevel = .alert + 100
         self.backgroundColor = .clear
         self.isUserInteractionEnabled = true
-
-        self.addSubview(toolbarHostingView)
-        self.bringSubviewToFront(toolbarHostingView)
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        toolbarHostingView.frame = overlayHostingController.view.bounds
-    }
-
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        if let presented = rootViewController?.presentedViewController?.view,
+        if let presented = overlayHostingController.presentedViewController?.view,
            let hit = presented.hitTest(convert(point, to: presented), with: event) {
             return hit
         }
 
-        if let toolbarHit = toolbarHostingView.hitTest(convert(point, to: toolbarHostingView), with: event) {
+        if let toolbarHit = overlayHostingController.view.hitTest(convert(point, to: overlayHostingController.view), with: event) {
             return toolbarHit
         }
 
@@ -55,17 +42,7 @@ final class OverlayWindow: UIWindow {
 
         return super.hitTest(point, with: event)
     }
+
 }
 
-private struct OverlayRootView: View {
 
-    var body: some View {
-        if let session = Agentation.shared.activeSession {
-            if session.isPaused {
-                PausedOverlayView(session: session)
-            } else {
-                CaptureOverlayView(session: session)
-            }
-        }
-    }
-}

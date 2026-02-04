@@ -1,11 +1,7 @@
 import SwiftUI
 import UIKit
 
-protocol HitTestable {
-    
-    func contains(_ point: CGPoint) -> Bool
 
-}
 
 final class PassThroughHostingView<Content: View & HitTestable>: _UIHostingView<Content> {
 

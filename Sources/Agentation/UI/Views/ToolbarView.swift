@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 import UniversalGlass
 
-struct ToolbarView: View, HitTestable {
+struct ToolbarView: View {
 
     private struct GeometryInfo: Equatable {
         let rect: CGRect
@@ -149,10 +149,6 @@ struct ToolbarView: View, HitTestable {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
-    }
-
-    func contains(_ point: CGPoint) -> Bool {
-        Agentation.shared.toolbarFrame.contains(point)
     }
 
     private func defaultPosition(in geometryInfo: GeometryInfo) -> CGPoint {
