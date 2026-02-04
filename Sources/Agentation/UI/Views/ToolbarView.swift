@@ -35,7 +35,9 @@ struct ToolbarView: View {
                 geometryInfo = newValue
             })
             .onChange(of: Agentation.shared.isActive) { oldValue, newValue in
-                guard geometryInfo.rect != .zero else { return }
+                guard geometryInfo.rect != .zero else {
+                    return
+                }
 
                 let position = position ?? defaultPosition(in: geometryInfo)
 
@@ -217,7 +219,9 @@ struct ToolbarView: View {
             .onEnded { _ in
                 dragState = .idle
 
-                guard let currentPosition = position else { return }
+                guard let currentPosition = position else {
+                    return
+                }
                 let snapped = snapToEdge(currentPosition, in: geometryInfo)
 
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
@@ -255,6 +259,7 @@ private struct BadgeView: View {
             .background(Color.blue, in: Capsule())
             .transition(.scale.combined(with: .opacity))
     }
+    
 }
 
 private struct ToolbarButton: View {

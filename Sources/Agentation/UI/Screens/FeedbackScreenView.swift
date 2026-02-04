@@ -127,7 +127,9 @@ struct FeedbackScreenView: View {
     }
 
     private func handleSubmit() {
-        guard !trimmedFeedback.isEmpty else { return }
+        guard !trimmedFeedback.isEmpty else {
+            return
+        }
         onSubmit(trimmedFeedback)
         dismiss()
     }

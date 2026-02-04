@@ -47,7 +47,9 @@ internal final class AgentationTagView: UIView {
     }
 
     private func updateTagRegistration() {
-        guard let tag = agentationTag, !tag.isEmpty else { return }
+        guard let tag = agentationTag, !tag.isEmpty else {
+            return
+        }
 
         if let parent = findTaggableParent() {
             AgentationTagRegistry.shared.setTag(tag, for: parent)

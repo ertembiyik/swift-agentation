@@ -10,6 +10,10 @@ public final class CaptureSession {
     public internal(set) var selectedElement: SnapshotElement?
     public private(set) var feedbackItems: [FeedbackItem]
     public let startedAt: Date
+    var liveFrames: [UUID: CGRect] = [:]
+
+    @ObservationIgnored
+    private var displayLinkTarget: DisplayLinkTarget?
 
     public var annotationCount: Int { feedbackItems.count }
 
@@ -17,12 +21,44 @@ public final class CaptureSession {
         dataSource: any HierarchyDataSource,
         snapshot: HierarchySnapshot,
         feedbackItems: [FeedbackItem] = [],
+        enableFrameTracking: Bool = false,
         startedAt: Date = Date()
     ) {
         self.dataSource = dataSource
         self.snapshot = snapshot
         self.feedbackItems = feedbackItems
         self.startedAt = startedAt
+        if enableFrameTracking {
+            startFrameTracking()
+        }
+    }
+
+    deinit {
+        displayLinkTarget?.invalidate()
+    }
+
+    func liveFrame(for item: FeedbackItem) -> CGRect {
+        liveFrames[item.elementId] ?? item.elementFrame
+    }
+
+    private func startFrameTracking() {
+        let target = DisplayLinkTarget { [weak self] in
+            self?.updateFrames()
+        }
+        target.start()
+        displayLinkTarget = target
+    }
+
+    private func updateFrames() {
+        for item in feedbackItems {
+            if let frame = dataSource.resolve(elementId: item.elementId) {
+                if liveFrames[item.elementId] != frame {
+                    liveFrames[item.elementId] = frame
+                }
+            } else {
+                liveFrames.removeValue(forKey: item.elementId)
+            }
+        }
     }
 
     public func addFeedback(_ text: String, for element: SnapshotElement) {
@@ -39,7 +75,9 @@ public final class CaptureSession {
     }
 
     public func updateFeedback(_ item: FeedbackItem, with text: String) {
-        guard let index = feedbackItems.firstIndex(where: { $0.id == item.id }) else { return }
+        guard let index = feedbackItems.firstIndex(where: { $0.id == item.id }) else {
+            return
+        }
         feedbackItems[index] = FeedbackItem(
             id: item.id,
             elementId: item.elementId,

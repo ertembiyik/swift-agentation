@@ -39,3 +39,4 @@ tuist xcodebuild -workspace Example/AgentationExample.xcworkspace \
 9. Never keep unused code "for reference". Delete it completely - git history preserves everything if needed later
 10. Prefer `guard` over `if-let` for early returns
 11. Use `do-catch` for errors, never throwing methods returning optionals
+12. Never use one-line `guard`/`if let` statements — the `return`/`continue`/`break` must be on its own line

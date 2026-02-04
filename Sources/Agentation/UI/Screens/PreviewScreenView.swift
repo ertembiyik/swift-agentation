@@ -9,7 +9,9 @@ struct PreviewScreenView: View {
     }
 
     private var hasFeedback: Bool {
-        guard let session else { return false }
+        guard let session else {
+            return false
+        }
         return !session.feedbackItems.isEmpty
     }
 

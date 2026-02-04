@@ -7,7 +7,7 @@ struct OverlayRootView: View, HitTestable {
             return Agentation.shared.toolbarFrame.contains(point)
         }
 
-        return !session.isPaused
+        return session.isPaused ? Agentation.shared.toolbarFrame.contains(point) : true
     }
 
     var body: some View {
@@ -18,6 +18,9 @@ struct OverlayRootView: View, HitTestable {
                 } else {
                     CaptureOverlayView(session: session)
                 }
+            } else if let lastSession = Agentation.shared.lastSession,
+                      !lastSession.feedbackItems.isEmpty {
+                IdleBadgesView(session: lastSession)
             }
 
             ToolbarView()

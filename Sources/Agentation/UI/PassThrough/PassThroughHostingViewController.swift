@@ -1,7 +1,6 @@
 import UIKit
 import SwiftUI
 
-
 final class PassThroughHostingViewController<Content: View & HitTestable>: UIViewController {
 
     private let rootView: Content

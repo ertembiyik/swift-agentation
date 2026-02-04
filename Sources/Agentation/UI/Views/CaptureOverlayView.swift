@@ -14,15 +14,30 @@ struct CaptureOverlayView: View {
                 if let selected = session.selectedElement {
                     drawHighlight(selected, color: .blue, lineWidth: 2.5, fillOpacity: 0.15, in: &context)
                 }
-
-                for item in session.feedbackItems {
-                    guard session.selectedElement?.id != item.elementId else { continue }
-                    let path = Path(item.elementFrame)
-                    context.fill(path, with: .color(.green.opacity(0.1)))
-                    context.stroke(path, with: .color(.green), lineWidth: 2)
-                }
             }
             .allowsHitTesting(false)
+
+            ForEach(session.feedbackItems) { item in
+                if session.selectedElement?.id != item.elementId {
+                    let frame = session.liveFrame(for: item)
+                    Button {
+                        feedbackTarget = SnapshotElement(
+                            id: item.elementId,
+                            displayName: item.elementDisplayName,
+                            shortType: item.elementShortType,
+                            frame: frame,
+                            path: item.elementPath
+                        )
+                    } label: {
+                        Rectangle()
+                            .fill(Color.green.opacity(0.1))
+                            .overlay(Rectangle().stroke(Color.green, lineWidth: 2))
+                    }
+                    .buttonStyle(.plain)
+                    .frame(width: frame.width, height: frame.height)
+                    .position(x: frame.midX, y: frame.midY)
+                }
+            }
 
             if let selected = session.selectedElement {
                 selectedElementLabel(selected)
@@ -33,7 +48,9 @@ struct CaptureOverlayView: View {
         .onTapGesture(coordinateSpace: .global) { location in
             let element = session.hitTest(point: location)
             session.selectedElement = element
-            guard let element else { return }
+            guard let element else {
+                return
+            }
             feedbackTarget = element
         }
         .simultaneousGesture(

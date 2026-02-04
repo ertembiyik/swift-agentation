@@ -23,6 +23,8 @@ public final class Agentation {
     public var outputFormat: OutputFormat = .markdown
     public var includeHiddenElements: Bool = false
     public var includeSystemViews: Bool = false
+    public var experimentalFrameTracking: Bool = false
+    public var experimentalRestoreElements: Bool = false
 
     var isToolbarVisible: Bool = true
 
@@ -45,12 +47,16 @@ public final class Agentation {
     }
 
     public var activeSession: CaptureSession? {
-        if case .capturing(let session) = state { return session }
+        if case .capturing(let session) = state {
+            return session
+        }
         return nil
     }
 
     public var isCapturing: Bool {
-        guard let session = activeSession else { return false }
+        guard let session = activeSession else {
+            return false
+        }
         return !session.isPaused
     }
 
@@ -69,8 +75,12 @@ public final class Agentation {
             }
 
             for await notification in NotificationCenter.default.notifications(named: UIScene.didActivateNotification) {
-                guard let self, self.overlayWindow == nil else { break }
-                guard let scene = notification.object as? UIWindowScene else { continue }
+                guard let self, self.overlayWindow == nil else {
+                    break
+                }
+                guard let scene = notification.object as? UIWindowScene else {
+                    continue
+                }
                 self.installIfNeeded(in: scene)
                 break
             }
@@ -79,12 +89,16 @@ public final class Agentation {
 
     public func install(in scene: UIWindowScene? = nil) {
         let targetScene = scene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene
-        guard let windowScene = targetScene else { return }
+        guard let windowScene = targetScene else {
+            return
+        }
         installIfNeeded(in: windowScene)
     }
 
     private func installIfNeeded(in scene: UIWindowScene) {
-        guard overlayWindow == nil else { return }
+        guard overlayWindow == nil else {
+            return
+        }
         let window = OverlayWindow(scene: scene)
         window.isHidden = false
         overlayWindow = window
@@ -93,18 +107,21 @@ public final class Agentation {
     }
 
     public func start() async {
-        guard case .idle = state else { return }
+        guard case .idle = state else {
+            return
+        }
 
         dismissKeyboardGlobally()
 
         let snapshot = await dataSource.capture()
 
-        let feedbackItems = lastSession?.feedbackItems ?? []
+        let feedbackItems = experimentalRestoreElements ? (lastSession?.feedbackItems ?? []) : []
 
         let session = CaptureSession(
             dataSource: dataSource,
             snapshot: snapshot,
             feedbackItems: feedbackItems,
+            enableFrameTracking: experimentalFrameTracking,
             startedAt: Date()
         )
 
@@ -112,20 +129,26 @@ public final class Agentation {
     }
 
     public func stop() {
-        guard let session = activeSession else { return }
+        guard let session = activeSession else {
+            return
+        }
         lastSession = session
         state = .idle
         overlayWindow?.endEditing(true)
     }
 
     public func pause() {
-        guard let session = activeSession, !session.isPaused else { return }
+        guard let session = activeSession, !session.isPaused else {
+            return
+        }
         session.selectedElement = nil
         session.isPaused = true
     }
 
     public func resume() async {
-        guard let session = activeSession, session.isPaused else { return }
+        guard let session = activeSession, session.isPaused else {
+            return
+        }
 
         let snapshot = await dataSource.capture()
 
@@ -136,7 +159,9 @@ public final class Agentation {
 
     @discardableResult
     public func copyFeedback() -> String? {
-        guard let session = activeSession ?? lastSession else { return nil }
+        guard let session = activeSession ?? lastSession else {
+            return nil
+        }
         let output = formatOutput(for: session)
         UIPasteboard.general.string = output
         return output
@@ -151,15 +176,6 @@ public final class Agentation {
 
     public func captureHierarchy() async -> HierarchySnapshot {
         await dataSource.capture()
-    }
-
-    public func debugHierarchy() -> String {
-        viewDataSource.printHierarchy()
-    }
-
-    @discardableResult
-    public func viewControllerHierarchy() -> String {
-        viewDataSource.printViewControllerHierarchy()
     }
 
     private func formatOutput(for session: CaptureSession) -> String {

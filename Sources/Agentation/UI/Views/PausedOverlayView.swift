@@ -5,16 +5,14 @@ struct PausedOverlayView: View {
     let session: CaptureSession
 
     var body: some View {
-        Canvas { context, _ in
-            for item in session.feedbackItems {
-                let badgeSize: CGFloat = 18
-                let rect = CGRect(
-                    x: item.elementFrame.maxX - badgeSize / 2,
-                    y: item.elementFrame.minY - badgeSize / 2,
-                    width: badgeSize,
-                    height: badgeSize
-                )
-                context.fill(Circle().path(in: rect), with: .color(.green))
+        ZStack(alignment: .topLeading) {
+            ForEach(session.feedbackItems) { item in
+                let frame = session.liveFrame(for: item)
+                Rectangle()
+                    .fill(Color.green.opacity(0.1))
+                    .overlay(Rectangle().stroke(Color.green, lineWidth: 2))
+                    .frame(width: frame.width, height: frame.height)
+                    .position(x: frame.midX, y: frame.midY)
             }
         }
         .ignoresSafeArea()

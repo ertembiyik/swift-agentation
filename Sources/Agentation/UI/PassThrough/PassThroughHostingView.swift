@@ -1,8 +1,6 @@
 import SwiftUI
 import UIKit
 
-
-
 final class PassThroughHostingView<Content: View & HitTestable>: _UIHostingView<Content> {
 
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
