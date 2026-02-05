@@ -52,7 +52,6 @@ public final class Agentation {
     public var includeHiddenElements = false
     public var includeSystemViews = false
     public var experimentalFrameTracking = false
-    public var experimentalRestoreElements = false
 
     var isToolbarVisible = true
     var lastSession: CaptureSession?
@@ -90,7 +89,7 @@ public final class Agentation {
 
         let snapshot = await dataSource.capture()
 
-        let feedbackItems = experimentalRestoreElements ? (lastSession?.feedbackItems ?? []) : []
+        let feedbackItems = lastSession?.feedbackItems ?? []
 
         let session = CaptureSession(
             dataSource: dataSource,

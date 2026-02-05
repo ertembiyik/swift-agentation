@@ -80,6 +80,11 @@ struct ToolbarView: View {
             }
         }
         .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 6)
+        .overlay(alignment: .topTrailing) {
+            BadgeView(count: Agentation.shared.annotationCount)
+                .offset(x: 2, y: -2)
+                .opacity(!Agentation.shared.isActive && Agentation.shared.annotationCount > 0 ? 1 : 0)
+        }
         .onGeometryChange(for: CGRect.self) { proxy in
             proxy.frame(in: .global)
         } action: { newValue in
@@ -97,12 +102,6 @@ struct ToolbarView: View {
                 .contentShape(Circle())
         }
         .tint(.purple)
-        .overlay(alignment: .topTrailing) {
-            if Agentation.shared.annotationCount > 0 {
-                BadgeView(count: Agentation.shared.annotationCount)
-                    .offset(x: 8, y: -8)
-            }
-        }
     }
 
     private var expanded: some View {

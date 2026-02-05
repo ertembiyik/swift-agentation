@@ -247,7 +247,6 @@ These properties on `Agentation.shared` control capture behavior:
 | `includeHiddenElements` | `false` | When enabled, elements with very low alpha or zero size are included in the snapshot. |
 | `includeSystemViews` | `false` | When enabled, system-provided views (keyboard, status bar internals) are included. |
 | `experimentalFrameTracking` | `false` | Enables `CADisplayLink`-based tracking so highlights follow elements that move or animate. |
-| `experimentalRestoreElements` | `false` | Carries over feedback items from the previous session when starting a new one. |
 
 ## Acknowledgments
 
