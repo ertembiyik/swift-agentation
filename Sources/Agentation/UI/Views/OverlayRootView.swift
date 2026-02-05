@@ -12,7 +12,7 @@ struct OverlayRootView: View, HitTestable {
                 }
             } else if let lastSession = Agentation.shared.lastSession,
                       !lastSession.feedbackItems.isEmpty,
-                      !lastSession.isFrameTrackingEnabled {
+                      lastSession.isFrameTrackingEnabled {
                 IdleBadgesView(session: lastSession)
             }
 
