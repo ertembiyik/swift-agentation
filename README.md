@@ -1,34 +1,53 @@
-# Agentation
+<p align="center">
+  <img src="https://github.com/anthropics/agentation-ios/assets/header.png" alt="Agentation" width="600" />
+</p>
 
-Agentation is an agent-agnostic visual feedback tool for iOS. Tap elements in your app, add notes, and copy structured output that helps AI coding agents find the exact code you're referring to.
+<h3 align="center">Visual feedback for AI coding agents on iOS</h3>
 
-Works with both **SwiftUI** and **UIKit**.
+<p align="center">
+Tap elements in your app, add notes, and copy structured output that helps AI coding agents find the exact views you're referring to. Based on the original <a href="https://github.com/benjitaylor/agentation">agentation</a> web implementation.
+</p>
 
-## Install
+---
 
-### Swift Package Manager
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+  - [Data Sources](#data-sources)
+    - [Accessibility](#accessibility)
+    - [View Hierarchy](#view-hierarchy)
+  - [Options](#options)
+- [Acknowledgments](#acknowledgments)
+
+## Installation
+
+Add the package via Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/anthropics/agentation-ios.git", from: "1.0.0")
+    .package(url: "https://github.com/ertembiyik/swift-agentation.git", from: "1.0.0")
 ]
 ```
 
-Or in Xcode: File → Add Package Dependencies → enter the repository URL.
+Or in Xcode: **File → Add Package Dependencies** → paste the repository URL.
+
+**Requirements:** iOS 17.0+, Swift 5.9+
 
 ## Usage
 
-### SwiftUI
+Call `install()` once at app launch to add the floating toolbar:
 
 ```swift
-import SwiftUI
+#if DEBUG
 import Agentation
+#endif
 
 @main
 struct MyApp: App {
     init() {
-        // Install the Agentation toolbar (auto-installs when scene is available)
+    #if DEBUG
         Agentation.shared.install()
+    #endif
     }
 
     var body: some Scene {
@@ -37,201 +56,198 @@ struct MyApp: App {
         }
     }
 }
+```
 
-struct ContentView: View {
+You can also install into a specific `UIWindowScene`:
+
+```swift
+Agentation.shared.install(in: scene)
+```
+
+### Session programmatic control
+
+Agentation uses an overlay window with visual controlls to manage the capture session and configure it but if you want to update the default values or control it programmatically you can do it using `Agentation` class:
+
+```swift
+await Agentation.shared.start()     // Begin a capture session
+Agentation.shared.pause()           // Pause element detection
+await Agentation.shared.resume()    // Resume detection with a fresh snapshot
+Agentation.shared.stop()            // End the session
+
+Agentation.shared.copyFeedback()    // Copy annotations to clipboard
+Agentation.shared.clearFeedback()   // Clear all annotations
+
+Agentation.shared.showToolbar()
+Agentation.shared.hideToolbar()
+```
+
+### Output formats
+
+Feedback can be copied as Markdown (default) or JSON:
+
+```swift
+Agentation.shared.outputFormat = .markdown // or .json
+```
+
+## Configuration
+
+### Data Sources
+
+Agentation supports two strategies for discovering elements on screen. Data sources are types conforming to the `HierarchyDataSource` protocol — you can implement your own if needed.
+
+The default data source is `AccessibilityHierarchyDataSource`, you can change it both through settings screen on Agentation toolbar or set the default one via:
+
+```swift
+Agentation.shared.selectedDataSourceType = .accessibility 
+```
+
+#### Accessibility
+
+The accessibility data source uses the iOS accessibility tree. It captures elements that have `isAccessibilityElement = true` and extracts their `accessibilityLabel`, `accessibilityValue`, `accessibilityHint`, and traits.
+
+This is the recommended source for both SwiftUI and UIKit. Use standard accessibility modifiers to tag your elements.
+
+**SwiftUI:**
+
+```swift
+struct ProfileView: View {
     var body: some View {
         VStack {
-            Text("Welcome")
-                .agentationTag("WelcomeText")
+            Image(systemName: "person.circle")
+                .accessibilityLabel("Profile picture")
 
-            Button("Sign In") { }
-                .agentationTag("SignInButton")
+            Text("Jane Doe")
+
+            Button("Edit Profile") { }
         }
     }
 }
 ```
 
-The floating toolbar appears automatically. Tap the button to start a capture session.
-
-### UIKit
+**UIKit:**
 
 ```swift
-import UIKit
-import Agentation
-
-@main
-class AppDelegate: UIResponder, UIApplicationDelegate {
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Install the Agentation toolbar
-        Agentation.shared.install()
-        return true
-    }
-}
-
-class ViewController: UIViewController {
+class ProfileViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        button.accessibilityLabel = "Sign In"
-        button.accessibilityIdentifier = "signInButton"
+        avatarImageView.accessibilityLabel = "Profile picture"
+        avatarImageView.isAccessibilityElement = true
+
+        editButton.accessibilityLabel = "Edit Profile"
     }
 }
 ```
 
-The floating toolbar appears automatically. Tap the collapsed button to start capturing, then tap any element to annotate it.
+**Example output:**
 
-## Features
-
-- **Tap to annotate** – Tap any element with automatic identification
-- **SwiftUI tags** – Mark views with `.agentationTag("name")` for precise targeting
-- **UIKit accessibility** – Uses existing `accessibilityLabel` and `accessibilityIdentifier`
-- **Hierarchical paths** – Generates paths like `.Profile > .Header > #loginButton`
-- **Real-time tracking** – Highlights follow elements even when they move
-- **Structured output** – Copy as Markdown or JSON with paths, frames, and context
-- **Shake to start** – Enable `Agentation.shared.enableShakeToStart()` in debug builds
-- **Zero dependencies** – Pure UIKit overlay, no third-party libraries
-
-## How it works
-
-Agentation creates a transparent overlay window above your app that intercepts all touches. When you tap an element, it traverses the entire view hierarchy to find what's underneath.
-
-### Architecture
-
-```
-┌─────────────────────────────────────┐
-│  Your App Window                    │
-│  ┌──────────────────────────────┐   │
-│  │  UIViewController            │   │
-│  │  └─ Views with accessibility │   │
-│  └──────────────────────────────┘   │
-└─────────────────────────────────────┘
-           ↑ inspects
-┌─────────────────────────────────────┐
-│  Overlay Window (level: alert+100)  │
-│  ├─ Touch interception              │
-│  ├─ Highlight views (blue/green)    │
-│  └─ Control bar + annotation popup  │
-└─────────────────────────────────────┘
-```
-
-### Element identification
-
-When you tap, Agentation captures the complete view hierarchy and performs a hit test to find the deepest element containing that point. For each element, it extracts:
-
-| Property | Source | Path format |
-|----------|--------|-------------|
-| `accessibilityIdentifier` | UIKit | `#identifier` |
-| `accessibilityLabel` | UIKit | `"label"` |
-| `.agentationTag()` | SwiftUI modifier | `[tag]` |
-| Type name | Fallback | `UILabel` |
-
-These combine into hierarchical paths that AI agents can grep for:
-
-```
-.ProfileView > .Header > #signInButton
-```
-
-### SwiftUI tag registration
-
-SwiftUI views don't expose their backing UIViews directly. The `.agentationTag()` modifier works around this by injecting an invisible helper view that registers a mapping when it appears:
-
-```swift
-Text("Hello")
-    .agentationTag("Greeting")  // Creates: ObjectIdentifier(UIView) → "Greeting"
-```
-
-During hierarchy inspection, Agentation looks up each UIView in this registry to retrieve your custom tag.
-
-### Real-time highlight tracking
-
-Selected elements show a green dashed border that follows the view even if it moves or animates. This uses `CADisplayLink` running at 60fps to query the view's current screen position and update the highlight frame.
-
-```swift
-// Simplified tracking loop
-displayLink.add(to: .main, forMode: .common)
-// Each frame:
-if let currentFrame = trackedView?.convert(bounds, to: nil) {
-    highlightView.frame = currentFrame
-}
-```
-
-### Output generation
-
-Captured feedback exports as Markdown (for humans and agents) or JSON (for tooling):
-
-**Markdown**
 ```markdown
-## Screen Feedback: ProfileViewController
-**Frame:** 390×844
+**Viewport:** 390×844
 
-### 1. button "Sign In"
-**Location:** .ProfileView > .Header > #signInButton
-**Frame:** x:20 y:150 w:350 h:44
-**Feedback:** Make the button larger and add a loading state
+## ProfileViewController
+
+### 1. image "Profile picture"
+**Location:** ProfileViewController > "Profile picture"
+**Frame:** x:165 y:120 w:60 h:60
+**Feedback:** Make the avatar larger
+
+### 2. statictext "Jane Doe"
+**Location:** ProfileViewController > "Jane Doe"
+**Frame:** x:140 y:190 w:110 h:20
+**Feedback:** Use bold font
+
+### 3. button "Edit Profile"
+**Location:** ProfileViewController > "Edit Profile"
+**Frame:** x:100 y:230 w:190 h:44
+**Feedback:** Add a loading state
 ```
 
-**JSON**
-```json
-{
-  "screen": "ProfileViewController",
-  "frame": { "width": 390, "height": 844 },
-  "items": [{
-    "type": "button",
-    "label": "Sign In",
-    "identifier": "signInButton",
-    "path": ".ProfileView > .Header > #signInButton",
-    "frame": { "x": 20, "y": 150, "width": 350, "height": 44 },
-    "feedback": "Make the button larger and add a loading state"
-  }]
+#### View Hierarchy
+
+The view hierarchy data source walks the `UIView` tree directly. It captures every leaf view regardless of accessibility settings, making it useful when you need full coverage of views that aren't exposed to VoiceOver.
+
+This source works best with **UIKit** because it can traverse the entire view tree. For **SwiftUI**, views don't expose their backing `UIView`s directly for majority of views, so the source cannot identify them without help. Use the `.agentationTag()` modifier to register SwiftUI views — it creates a frame-based mapping that Agentation looks up during capture.
+
+**UIKit:**
+
+```swift
+class ProfileViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        avatarImageView.accessibilityIdentifier = "avatarImage"
+        nameLabel.accessibilityLabel = "Jane Doe"
+        editButton.accessibilityIdentifier = "editProfileButton"
+    }
 }
 ```
 
-## Control bar
-
-| Icon | Action |
-|------|--------|
-| ⏸/▶ | Pause/resume element detection |
-| 👁 | Preview all collected feedback |
-| 📋 | Copy to clipboard |
-| 🗑 | Clear all feedback |
-| ⚙ | Settings (output format) |
-| ✕ | Exit capture mode |
-
-## API
+**SwiftUI (requires `.agentationTag()`):**
 
 ```swift
-// Installation (call once at app launch)
-Agentation.shared.install()         // Auto-installs when scene is available
-Agentation.shared.install(in: scene) // Install in specific scene
+struct ProfileView: View {
+    var body: some View {
+        VStack {
+            Image(systemName: "person.circle")
+                .agentationTag("Avatar")
 
-// Toolbar visibility
-Agentation.shared.showToolbar()     // Show if hidden
-Agentation.shared.hideToolbar()     // Hide temporarily
+            Text("Jane Doe")
+                .agentationTag("UserName")
 
-// Session control
-Agentation.shared.start()           // Start capture session
-Agentation.shared.start { feedback in /* ... */ } // With completion
-Agentation.shared.stop()            // Stop capture session
-Agentation.shared.togglePause()     // Pause/resume detection
-Agentation.shared.clearFeedback()   // Clear all annotations
-Agentation.shared.copyFeedback()    // Copy to clipboard
-
-// Inspect hierarchy without UI
-let elements = Agentation.shared.captureHierarchy()
-let debug = Agentation.shared.debugHierarchy()
-
-// Session properties
-Agentation.shared.currentSession?.outputFormat = .json
-Agentation.shared.isActive
-Agentation.shared.currentSession?.isPaused
+            Button("Edit Profile") { }
+                .agentationTag("EditButton")
+        }
+    }
+}
 ```
 
-## Requirements
+Paths use `[tag]` for `.agentationTag()`, `#id` for `accessibilityIdentifier`, and `"label"` for `accessibilityLabel`:
 
-- iOS 17.0+
-- macOS 14.0+ (Mac Catalyst)
-- Swift 5.9+
+**Example output:**
 
-## License
+```markdown
+**Viewport:** 390×844
 
-MIT License
+## ProfileViewController
+
+### 1. image "avatarImage"
+**Location:** ProfileViewController > #avatarImage
+**Frame:** x:165 y:120 w:60 h:60
+**Feedback:** Make the avatar larger
+
+### 2. text "Jane Doe"
+**Location:** ProfileViewController > "Jane Doe"
+**Frame:** x:140 y:190 w:110 h:20
+**Feedback:** Use bold font
+
+### 3. button "editProfileButton"
+**Location:** ProfileViewController > #editProfileButton
+**Frame:** x:100 y:230 w:190 h:44
+**Feedback:** Add a loading state
+```
+
+For the SwiftUI example with `.agentationTag()`:
+
+```markdown
+### 1. image "Avatar"
+**Location:** ProfileViewController > [Avatar]
+...
+```
+
+### Options
+
+These properties on `Agentation.shared` control capture behavior:
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `selectedDataSourceType` | `.accessibility` | Which data source to use (`.accessibility` or `.viewHierarchy`). |
+| `outputFormat` | `.markdown` | Output format when copying feedback (`.markdown` or `.json`). |
+| `includeHiddenElements` | `false` | When enabled, elements with very low alpha or zero size are included in the snapshot. |
+| `includeSystemViews` | `false` | When enabled, system-provided views (keyboard, status bar internals) are included. |
+| `experimentalFrameTracking` | `false` | Enables `CADisplayLink`-based tracking so highlights follow elements that move or animate. |
+| `experimentalRestoreElements` | `false` | Carries over feedback items from the previous session when starting a new one. |
+
+## Acknowledgments
+
+- [agentation](https://github.com/benjitaylor/agentation) — the original TypeScript/React implementation
+- [UniversalGlass](https://github.com/Aeastr/UniversalGlass) — cross-version glass material effects used for the toolbar UI

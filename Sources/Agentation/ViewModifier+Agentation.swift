@@ -1,77 +1,19 @@
 import SwiftUI
-import UIKit
 
 public struct AgentationTagModifier: ViewModifier {
+
     let tag: String
 
     public func body(content: Content) -> some View {
         content
-            .background(AgentationTagHelper(tag: tag))
-    }
-}
-
-private struct AgentationTagHelper: UIViewRepresentable {
-    let tag: String
-
-    func makeUIView(context: Context) -> AgentationTagView {
-        let view = AgentationTagView()
-        view.agentationTag = tag
-        return view
-    }
-
-    func updateUIView(_ uiView: AgentationTagView, context: Context) {
-        uiView.agentationTag = tag
-    }
-}
-
-@MainActor
-internal final class AgentationTagView: UIView {
-    var agentationTag: String? {
-        didSet {
-            updateTagRegistration()
-        }
-    }
-
-    override func didMoveToSuperview() {
-        super.didMoveToSuperview()
-        updateTagRegistration()
-    }
-
-    override func willMove(toSuperview newSuperview: UIView?) {
-        super.willMove(toSuperview: newSuperview)
-        if newSuperview == nil {
-            if let parent = findTaggableParent() {
-                AgentationTagRegistry.shared.removeTag(for: parent)
+            .onGeometryChange(for: CGRect.self) { proxy in
+                proxy.frame(in: .global)
+            } action: { frame in
+                AgentationTagRegistry.shared.set(tag: tag, frame: frame)
             }
-        }
-    }
-
-    private func updateTagRegistration() {
-        guard let tag = agentationTag, !tag.isEmpty else {
-            return
-        }
-
-        if let parent = findTaggableParent() {
-            AgentationTagRegistry.shared.setTag(tag, for: parent)
-        }
-    }
-
-    private func findTaggableParent() -> UIView? {
-        var current: UIView? = self.superview
-
-        while let view = current {
-            let typeName = String(describing: type(of: view))
-
-            if !typeName.hasPrefix("_") &&
-               !typeName.contains("BackgroundView") &&
-               !typeName.contains("ModifiedContent") {
-                return view
+            .onDisappear {
+                AgentationTagRegistry.shared.remove(tag: tag)
             }
-
-            current = view.superview
-        }
-
-        return self.superview
     }
 }
 
@@ -85,23 +27,33 @@ public extension View {
 public final class AgentationTagRegistry {
     public static let shared = AgentationTagRegistry()
 
-    private var tags: [ObjectIdentifier: String] = [:]
+    private(set) var entries: [String: CGRect] = [:]
 
     private init() {}
 
-    public func setTag(_ tag: String, for view: UIView) {
-        tags[ObjectIdentifier(view)] = tag
+    func set(tag: String, frame: CGRect) {
+        entries[tag] = frame
     }
 
-    public func tag(for view: UIView) -> String? {
-        tags[ObjectIdentifier(view)]
+    func remove(tag: String) {
+        entries.removeValue(forKey: tag)
     }
 
-    public func removeTag(for view: UIView) {
-        tags.removeValue(forKey: ObjectIdentifier(view))
+    func tag(for frame: CGRect, tolerance: CGFloat = 2) -> String? {
+        for (tag, tagFrame) in entries {
+            guard abs(tagFrame.origin.x - frame.origin.x) < tolerance,
+                  abs(tagFrame.origin.y - frame.origin.y) < tolerance,
+                  abs(tagFrame.width - frame.width) < tolerance,
+                  abs(tagFrame.height - frame.height) < tolerance
+            else {
+                continue
+            }
+            return tag
+        }
+        return nil
     }
 
-    public func clearAll() {
-        tags.removeAll()
+    func clearAll() {
+        entries.removeAll()
     }
 }

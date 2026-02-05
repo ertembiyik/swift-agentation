@@ -140,7 +140,7 @@ final class AccessibilityHierarchyDataSource: HierarchyDataSource {
         } else {
             view = element.value(forKey: "accessibilityContainer") as? UIView
         }
-        guard let view, let vc = UIViewUtils.owningViewController(for: view) else {
+        guard let view, let vc = UIUtils.owningViewController(for: view) else {
             return currentScreenName()
         }
         return String(describing: type(of: vc))

@@ -2,20 +2,42 @@ import UIKit
 
 @MainActor
 @Observable
-public final class CaptureSession {
+final class CaptureSession {
 
-    let dataSource: any HierarchyDataSource
-    public internal(set) var snapshot: HierarchySnapshot
-    public internal(set) var isPaused: Bool = false
-    public internal(set) var selectedElement: SnapshotElement?
-    public private(set) var feedbackItems: [FeedbackItem]
-    public let startedAt: Date
+    var snapshot: HierarchySnapshot
+
+    var isPaused: Bool = false
+
+    var selectedElement: SnapshotElement?
+
+    var feedbackItems: [FeedbackItem]
+
     var liveFrames: [UUID: CGRect] = [:]
+
+    var annotationCount: Int {
+        feedbackItems.count
+    }
+
+    var feedbackByScreen: [(screenName: String, items: [FeedbackItem])] {
+        var order: [String] = []
+        var grouped: [String: [FeedbackItem]] = [:]
+
+        for item in feedbackItems {
+            if grouped[item.screenName] == nil {
+                order.append(item.screenName)
+            }
+            grouped[item.screenName, default: []].append(item)
+        }
+
+        return order.map { (screenName: $0, items: grouped[$0]!) }
+    }
 
     @ObservationIgnored
     private var displayLinkTarget: DisplayLinkTarget?
 
-    public var annotationCount: Int { feedbackItems.count }
+    let startedAt: Date
+
+    let dataSource: any HierarchyDataSource
 
     init(
         dataSource: any HierarchyDataSource,
@@ -41,27 +63,7 @@ public final class CaptureSession {
         liveFrames[item.elementId] ?? item.elementFrame
     }
 
-    private func startFrameTracking() {
-        let target = DisplayLinkTarget { [weak self] in
-            self?.updateFrames()
-        }
-        target.start()
-        displayLinkTarget = target
-    }
-
-    private func updateFrames() {
-        for item in feedbackItems {
-            if let frame = dataSource.resolve(elementId: item.elementId) {
-                if liveFrames[item.elementId] != frame {
-                    liveFrames[item.elementId] = frame
-                }
-            } else {
-                liveFrames.removeValue(forKey: item.elementId)
-            }
-        }
-    }
-
-    public func addFeedback(_ text: String, for element: SnapshotElement) {
+    func addFeedback(_ text: String, for element: SnapshotElement) {
         let item = FeedbackItem(
             elementId: element.id,
             text: text,
@@ -74,7 +76,7 @@ public final class CaptureSession {
         feedbackItems.append(item)
     }
 
-    public func updateFeedback(_ item: FeedbackItem, with text: String) {
+    func updateFeedback(_ item: FeedbackItem, with text: String) {
         guard let index = feedbackItems.firstIndex(where: { $0.id == item.id }) else {
             return
         }
@@ -91,42 +93,28 @@ public final class CaptureSession {
         )
     }
 
-    public func removeFeedback(_ item: FeedbackItem) {
+    func removeFeedback(_ item: FeedbackItem) {
         feedbackItems.removeAll { $0.id == item.id }
     }
 
-    public func clearFeedback() {
+    func clearFeedback() {
         feedbackItems.removeAll()
     }
 
-    public func feedbackItem(for elementId: UUID) -> FeedbackItem? {
+    func feedbackItem(for elementId: UUID) -> FeedbackItem? {
         feedbackItems.first { $0.elementId == elementId }
     }
 
-    public func elementHasFeedback(_ elementId: UUID) -> Bool {
+    func elementHasFeedback(_ elementId: UUID) -> Bool {
         feedbackItems.contains { $0.elementId == elementId }
     }
 
-    public func hitTest(point: CGPoint) -> SnapshotElement? {
+    func hitTest(point: CGPoint) -> SnapshotElement? {
         let candidates = snapshot.leafElements.filter { $0.frame.contains(point) }
         return candidates.min(by: { ($0.frame.width * $0.frame.height) < ($1.frame.width * $1.frame.height) })
     }
 
-    public var feedbackByScreen: [(screenName: String, items: [FeedbackItem])] {
-        var order: [String] = []
-        var grouped: [String: [FeedbackItem]] = [:]
-
-        for item in feedbackItems {
-            if grouped[item.screenName] == nil {
-                order.append(item.screenName)
-            }
-            grouped[item.screenName, default: []].append(item)
-        }
-
-        return order.map { (screenName: $0, items: grouped[$0]!) }
-    }
-
-    public func formatAsMarkdown() -> String {
+    func formatAsMarkdown() -> String {
         var output = ""
         output += "**Viewport:** \(Int(snapshot.viewportSize.width))×\(Int(snapshot.viewportSize.height))\n\n"
 
@@ -152,7 +140,7 @@ public final class CaptureSession {
         return output
     }
 
-    public func formatAsJSON() throws -> Data {
+    func formatAsJSON() throws -> Data {
         struct Output: Encodable {
             let viewport: ViewportOutput
             let screens: [ScreenOutput]
@@ -213,4 +201,25 @@ public final class CaptureSession {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return try encoder.encode(output)
     }
+
+    private func startFrameTracking() {
+        let target = DisplayLinkTarget { [weak self] in
+            self?.updateFrames()
+        }
+        target.start()
+        displayLinkTarget = target
+    }
+
+    private func updateFrames() {
+        for item in feedbackItems {
+            if let frame = dataSource.resolve(elementId: item.elementId) {
+                if liveFrames[item.elementId] != frame {
+                    liveFrames[item.elementId] = frame
+                }
+            } else {
+                liveFrames.removeValue(forKey: item.elementId)
+            }
+        }
+    }
+    
 }

@@ -33,7 +33,8 @@ final class ViewHierarchyDataSource: HierarchyDataSource {
 
     private func inspectView(_ view: UIView, accessibilityPath: String, depth: Int) -> ViewElementInfo {
         let typeName = String(describing: type(of: view))
-        let component = accessibilityPathComponent(for: view)
+        let screenFrame = view.convert(view.bounds, to: nil)
+        let component = accessibilityPathComponent(for: view, frame: screenFrame)
         let currentAccessibilityPath: String
         if let component {
             currentAccessibilityPath = accessibilityPath.isEmpty ? component : "\(accessibilityPath) > \(component)"
@@ -43,8 +44,6 @@ final class ViewHierarchyDataSource: HierarchyDataSource {
 
         let vcName = viewControllerName(for: view)
         let fullPath = currentAccessibilityPath.isEmpty ? vcName : "\(vcName) > \(currentAccessibilityPath)"
-
-        let screenFrame = view.convert(view.bounds, to: nil)
 
         var children: [ViewElementInfo] = []
         for subview in view.subviews {
@@ -69,21 +68,21 @@ final class ViewHierarchyDataSource: HierarchyDataSource {
             accessibilityIdentifier: view.accessibilityIdentifier ?? "",
             accessibilityHint: view.accessibilityHint ?? "",
             accessibilityValue: view.accessibilityValue ?? "",
-            agentationTag: AgentationTagRegistry.shared.tag(for: view) ?? "",
+            agentationTag: AgentationTagRegistry.shared.tag(for: screenFrame) ?? "",
             children: children,
             path: fullPath
         )
     }
 
     private func viewControllerName(for view: UIView) -> String {
-        guard let vc = UIViewUtils.owningViewController(for: view) else {
+        guard let vc = UIUtils.owningViewController(for: view) else {
             return currentScreenName()
         }
         return String(describing: type(of: vc))
     }
 
-    private func accessibilityPathComponent(for view: UIView) -> String? {
-        if let tag = AgentationTagRegistry.shared.tag(for: view) {
+    private func accessibilityPathComponent(for view: UIView, frame: CGRect) -> String? {
+        if let tag = AgentationTagRegistry.shared.tag(for: frame) {
             return "[\(tag)]"
         }
 
