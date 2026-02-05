@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "universalglass",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Aeastr/UniversalGlass.git",
+      "state" : {
+        "revision" : "9c084472801ac2c1b4c753668b275094c635b8a2",
+        "version" : "1.1.0"
+      }
+    }
+  ],
+  "version" : 2
+}
