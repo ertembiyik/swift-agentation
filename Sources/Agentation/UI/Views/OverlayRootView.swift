@@ -11,7 +11,8 @@ struct OverlayRootView: View, HitTestable {
                     CaptureOverlayView(session: session)
                 }
             } else if let lastSession = Agentation.shared.lastSession,
-                      !lastSession.feedbackItems.isEmpty {
+                      !lastSession.feedbackItems.isEmpty,
+                      !lastSession.isFrameTrackingEnabled {
                 IdleBadgesView(session: lastSession)
             }
 

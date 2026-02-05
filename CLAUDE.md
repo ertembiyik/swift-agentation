@@ -28,11 +28,10 @@ The toolbar is **always visible** and transitions between two states:
 7. to build the Example, use:
 
 ```bash
-tuist xcodebuild -workspace Example/AgentationExample.xcworkspace \
+xcodebuild -project AgentationExample/AgentationExample.xcodeproj \
   -scheme AgentationExample \
   -sdk iphonesimulator \
-  -configuration Debug \
-  build
+  -configuration Debug
 ```
 
 8. Avoid comments, `// MARK:` dividers, and documentation; use clear naming and structure instead, use comments only in critical sections when something not obvious is happening
@@ -41,6 +40,7 @@ tuist xcodebuild -workspace Example/AgentationExample.xcworkspace \
 11. Use `do-catch` for errors, never throwing methods returning optionals
 12. Never use one-line `guard`/`if let` statements — the `return`/`continue`/`break` must be on its own line
 13. Omit type annotations when the type is obvious from the initializer (e.g., `var isEnabled = true` not `var isEnabled: Bool = true`)
+14. In SwiftUI views, properties must be declared before `var body: some View`
 
 ## Code Organization Within Files
 

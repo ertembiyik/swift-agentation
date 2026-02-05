@@ -2,6 +2,10 @@ import SwiftUI
 
 struct CaptureOverlayView: View {
 
+    @State private var feedbackTarget: SnapshotElement?
+
+    let session: CaptureSession
+
     var body: some View {
         ZStack(alignment: .topLeading) {
             Color.black.opacity(0.01)
@@ -73,10 +77,6 @@ struct CaptureOverlayView: View {
             .presentationDetents([.medium])
         }
     }
-
-    @State private var feedbackTarget: SnapshotElement?
-
-    let session: CaptureSession
 
     private func drawHighlight(_ element: SnapshotElement, color: Color, lineWidth: CGFloat, fillOpacity: Double, in context: inout GraphicsContext) {
         let path = Path(element.frame)

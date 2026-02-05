@@ -2,6 +2,8 @@ import SwiftUI
 
 struct IdleBadgesView: View {
 
+    let session: CaptureSession
+
     var body: some View {
         Canvas { context, _ in
             for item in session.feedbackItems {
@@ -19,7 +21,5 @@ struct IdleBadgesView: View {
         .ignoresSafeArea()
         .allowsHitTesting(false)
     }
-
-    let session: CaptureSession
 
 }

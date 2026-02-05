@@ -2,6 +2,8 @@ import SwiftUI
 
 struct PausedOverlayView: View {
 
+    let session: CaptureSession
+
     var body: some View {
         ZStack(alignment: .topLeading) {
             ForEach(session.feedbackItems) { item in
@@ -16,7 +18,5 @@ struct PausedOverlayView: View {
         .ignoresSafeArea()
         .allowsHitTesting(false)
     }
-
-    let session: CaptureSession
 
 }

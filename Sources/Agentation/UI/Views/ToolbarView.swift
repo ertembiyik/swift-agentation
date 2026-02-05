@@ -16,6 +16,15 @@ struct ToolbarView: View {
 
     private static let size: CGFloat = 44
 
+    @State private var position: CGPoint?
+    @State private var dragState = DragState.idle
+    @State private var showingSettings = false
+    @State private var showingPreview = false
+    @State private var copiedFeedback = false
+    @State private var geometryInfo = GeometryInfo(rect: .zero, safeAreaInsets: .init())
+
+    @Namespace private var morphNamespace
+
     var body: some View {
         toolbarContent
             .position(position ?? defaultPosition(in: geometryInfo))
@@ -57,15 +66,6 @@ struct ToolbarView: View {
             }
             .accessibilityHidden(true)
     }
-
-    @State private var position: CGPoint?
-    @State private var dragState = DragState.idle
-    @State private var showingSettings = false
-    @State private var showingPreview = false
-    @State private var copiedFeedback = false
-    @State private var geometryInfo = GeometryInfo(rect: .zero, safeAreaInsets: .init())
-
-    @Namespace private var morphNamespace
 
     private var toolbarContent: some View {
         UniversalGlassEffectContainer {
@@ -249,6 +249,8 @@ struct ToolbarView: View {
 
 private struct BadgeView: View {
 
+    let count: Int
+
     var body: some View {
         Text(count > 99 ? "99+" : "\(count)")
             .font(.system(size: 10, weight: .bold))
@@ -259,11 +261,15 @@ private struct BadgeView: View {
             .transition(.scale.combined(with: .opacity))
     }
 
-    let count: Int
-
 }
 
 private struct ToolbarButton: View {
+
+    let icon: String
+    let label: String
+    let action: () -> Void
+
+    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         Button(action: action) {
@@ -276,12 +282,6 @@ private struct ToolbarButton: View {
         .buttonStyle(.plain)
         .accessibilityLabel(label)
     }
-
-    let icon: String
-    let label: String
-    let action: () -> Void
-
-    @Environment(\.isEnabled) private var isEnabled
 
 }
 

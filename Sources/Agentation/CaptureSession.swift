@@ -31,6 +31,7 @@ final class CaptureSession {
     @ObservationIgnored
     private var displayLinkTarget: DisplayLinkTarget?
 
+    let isFrameTrackingEnabled: Bool
     let startedAt: Date
     let dataSource: any HierarchyDataSource
 
@@ -41,10 +42,11 @@ final class CaptureSession {
         enableFrameTracking: Bool = false,
         startedAt: Date = Date()
     ) {
+        self.isFrameTrackingEnabled = enableFrameTracking
+        self.startedAt = startedAt
         self.dataSource = dataSource
         self.snapshot = snapshot
         self.feedbackItems = feedbackItems
-        self.startedAt = startedAt
         if enableFrameTracking {
             startFrameTracking()
         }
