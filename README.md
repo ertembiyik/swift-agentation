@@ -1,5 +1,7 @@
+# swift-agentation
+
 <p align="center">
-  <img src="https://github.com/anthropics/agentation-ios/assets/header.png" alt="Agentation" width="600" />
+  <video src="assets/demo.mp4" width="300" autoplay loop muted playsinline></video>
 </p>
 
 <h3 align="center">Visual feedback for AI coding agents on iOS</h3>
@@ -251,3 +253,7 @@ These properties on `Agentation.shared` control capture behavior:
 
 - [agentation](https://github.com/benjitaylor/agentation) — the original TypeScript/React implementation
 - [UniversalGlass](https://github.com/Aeastr/UniversalGlass) — cross-version glass material effects used for the toolbar UI
+
+## License
+
+[MIT License](LICENSE)
