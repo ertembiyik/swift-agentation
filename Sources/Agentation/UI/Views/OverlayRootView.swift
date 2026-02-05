@@ -2,14 +2,6 @@ import SwiftUI
 
 struct OverlayRootView: View, HitTestable {
 
-    func contains(_ point: CGPoint) -> Bool {
-        guard let session = Agentation.shared.activeSession else {
-            return Agentation.shared.toolbarFrame.contains(point)
-        }
-
-        return session.isPaused ? Agentation.shared.toolbarFrame.contains(point) : true
-    }
-
     var body: some View {
         ZStack {
             if let session = Agentation.shared.activeSession {
@@ -25,6 +17,14 @@ struct OverlayRootView: View, HitTestable {
 
             ToolbarView()
         }
+    }
+
+    func contains(_ point: CGPoint) -> Bool {
+        guard let session = Agentation.shared.activeSession else {
+            return Agentation.shared.toolbarFrame.contains(point)
+        }
+
+        return session.isPaused ? Agentation.shared.toolbarFrame.contains(point) : true
     }
 
 }

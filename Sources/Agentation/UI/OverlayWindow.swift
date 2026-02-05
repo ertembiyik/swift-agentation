@@ -7,7 +7,7 @@ final class OverlayWindow: UIWindow {
         Agentation.shared.isCapturing
     }
 
-    private var overlayHostingController: PassThroughHostingViewController<OverlayRootView>
+    private let overlayHostingController: PassThroughHostingViewController<OverlayRootView>
 
     init(scene: UIWindowScene) {
         let rootVC = PassThroughHostingViewController(rootView: OverlayRootView())

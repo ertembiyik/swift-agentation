@@ -1,5 +1,5 @@
-import UIKit
 import SwiftUI
+import UIKit
 
 final class PassThroughHostingViewController<Content: View & HitTestable>: UIViewController {
 
@@ -7,10 +7,10 @@ final class PassThroughHostingViewController<Content: View & HitTestable>: UIVie
 
     init(rootView: Content) {
         self.rootView = rootView
-
         super.init(nibName: nil, bundle: nil)
     }
 
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -18,5 +18,4 @@ final class PassThroughHostingViewController<Content: View & HitTestable>: UIVie
     override func loadView() {
         view = PassThroughHostingView(rootView: rootView)
     }
-
 }

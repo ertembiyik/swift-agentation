@@ -25,6 +25,7 @@ public extension View {
 
 @MainActor
 public final class AgentationTagRegistry {
+
     public static let shared = AgentationTagRegistry()
 
     private(set) var entries: [String: CGRect] = [:]

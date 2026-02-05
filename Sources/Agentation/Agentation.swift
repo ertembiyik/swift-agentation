@@ -5,52 +5,17 @@ import SwiftUI
 @Observable
 public final class Agentation {
 
-    enum State {
-        case idle
-        case capturing(CaptureSession)
-    }
-
     public enum OutputFormat: String, CaseIterable, Sendable {
         case markdown
         case json
     }
 
+    enum State {
+        case idle
+        case capturing(CaptureSession)
+    }
+
     public static let shared = Agentation()
-
-    public var selectedDataSourceType: DataSourceType = .accessibility
-    public var outputFormat: OutputFormat = .markdown
-    public var includeHiddenElements: Bool = false
-    public var includeSystemViews: Bool = false
-    public var experimentalFrameTracking: Bool = false
-    public var experimentalRestoreElements: Bool = false
-
-    var isToolbarVisible: Bool = true
-
-    @ObservationIgnored
-    var toolbarFrame: CGRect = .zero
-
-    private var state: State = .idle
-    private var lastSession: CaptureSession?
-
-    private var overlayWindow: OverlayWindow?
-
-    private let viewDataSource = ViewHierarchyDataSource()
-    private let accessibilityDataSource = AccessibilityHierarchyDataSource()
-
-    var dataSource: any HierarchyDataSource {
-        switch selectedDataSourceType {
-        case .viewHierarchy: viewDataSource
-        case .accessibility: accessibilityDataSource
-        }
-    }
-
-    var activeSession: CaptureSession? {
-        if case .capturing(let session) = state {
-            return session
-        }
-
-        return nil
-    }
 
     public var isCapturing: Bool {
         guard let session = activeSession else {
@@ -67,26 +32,53 @@ public final class Agentation {
         activeSession?.annotationCount ?? lastSession?.annotationCount ?? 0
     }
 
+    var dataSource: any HierarchyDataSource {
+        switch selectedDataSourceType {
+        case .viewHierarchy: viewDataSource
+        case .accessibility: accessibilityDataSource
+        }
+    }
+
+    var activeSession: CaptureSession? {
+        if case .capturing(let session) = state {
+            return session
+        }
+
+        return nil
+    }
+
+    public var selectedDataSourceType = DataSourceType.accessibility
+    public var outputFormat = OutputFormat.markdown
+    public var includeHiddenElements = false
+    public var includeSystemViews = false
+    public var experimentalFrameTracking = false
+    public var experimentalRestoreElements = false
+
+    var isToolbarVisible = true
+    var lastSession: CaptureSession?
+
+    @ObservationIgnored
+    var toolbarFrame: CGRect = .zero
+
+    private var state = State.idle
+    private var overlayWindow: OverlayWindow?
+    private var sceneObservationTask: Task<Void, Never>?
+
+    private let viewDataSource = ViewHierarchyDataSource()
+    private let accessibilityDataSource = AccessibilityHierarchyDataSource()
+
     private init() { }
 
     public func install(in scene: UIWindowScene? = nil) {
         let targetScene = scene ?? UIApplication.shared.connectedScenes.first as? UIWindowScene
 
-        guard let windowScene = targetScene else {
+        guard let targetScene else {
+            startSceneObservationTask()
+
             return
         }
 
-        installIfNeeded(in: windowScene)
-    }
-
-    private func installIfNeeded(in scene: UIWindowScene) {
-        guard overlayWindow == nil else {
-            return
-        }
-
-        let window = OverlayWindow(scene: scene)
-        window.isHidden = false
-        overlayWindow = window
+        installIfNeeded(in: targetScene)
     }
 
     public func start() async {
@@ -167,6 +159,43 @@ public final class Agentation {
 
     public func captureHierarchy() async -> HierarchySnapshot {
         await dataSource.capture()
+    }
+
+    private func startSceneObservationTask() {
+        sceneObservationTask?.cancel()
+        sceneObservationTask = nil
+
+        sceneObservationTask = Task { @MainActor [weak self] in
+            if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                self?.installIfNeeded(in: scene)
+            }
+
+            for await notification in NotificationCenter.default.notifications(named: UIScene.didActivateNotification) {
+                guard let self, self.overlayWindow == nil else {
+                    break
+                }
+
+                guard let scene = notification.object as? UIWindowScene else {
+                    continue
+                }
+
+                self.installIfNeeded(in: scene)
+                break
+            }
+        }
+    }
+
+    private func installIfNeeded(in scene: UIWindowScene) {
+        guard overlayWindow == nil else {
+            return
+        }
+
+        let window = OverlayWindow(scene: scene)
+        window.isHidden = false
+        overlayWindow = window
+
+        sceneObservationTask?.cancel()
+        sceneObservationTask = nil
     }
 
     private func formatOutput(for session: CaptureSession) -> String {

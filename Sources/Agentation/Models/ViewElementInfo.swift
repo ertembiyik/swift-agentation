@@ -2,17 +2,6 @@ import CoreGraphics
 import Foundation
 
 struct ViewElementInfo: ElementProtocol, Sendable {
-    let id: UUID
-    let typeName: String
-    let frame: CGRect
-    let accessibilityLabel: String
-    let accessibilityIdentifier: String
-    let accessibilityHint: String
-    let accessibilityValue: String
-    let agentationTag: String
-    let children: [ViewElementInfo]
-    let path: String
-
     var displayName: String {
         if !accessibilityLabel.isEmpty { return accessibilityLabel }
         if !accessibilityIdentifier.isEmpty { return accessibilityIdentifier }
@@ -41,6 +30,17 @@ struct ViewElementInfo: ElementProtocol, Sendable {
                 .lowercased()
         }
     }
+
+    let id: UUID
+    let typeName: String
+    let frame: CGRect
+    let accessibilityLabel: String
+    let accessibilityIdentifier: String
+    let accessibilityHint: String
+    let accessibilityValue: String
+    let agentationTag: String
+    let children: [ViewElementInfo]
+    let path: String
 
     func leafElements() -> [SnapshotElement] {
         if children.isEmpty {

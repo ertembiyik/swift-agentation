@@ -12,5 +12,4 @@ final class PassThroughHostingView<Content: View & HitTestable>: _UIHostingView<
 
         return super.point(inside: point, with: event)
     }
-
 }

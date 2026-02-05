@@ -3,6 +3,7 @@ import UIKit
 final class DisplayLinkTarget: @unchecked Sendable {
 
     private var displayLink: CADisplayLink?
+
     private let action: @MainActor () -> Void
 
     @MainActor

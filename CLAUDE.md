@@ -40,3 +40,27 @@ tuist xcodebuild -workspace Example/AgentationExample.xcworkspace \
 10. Prefer `guard` over `if-let` for early returns
 11. Use `do-catch` for errors, never throwing methods returning optionals
 12. Never use one-line `guard`/`if let` statements — the `return`/`continue`/`break` must be on its own line
+13. Omit type annotations when the type is obvious from the initializer (e.g., `var isEnabled = true` not `var isEnabled: Bool = true`)
+
+## Code Organization Within Files
+
+**Order of declarations:**
+
+1. types
+2. static
+3. computed var
+4. var
+5. let
+6. init/deinit
+7. func
+
+**Order of access control:**
+
+1. `open static` declarations
+2. `open` declarations
+3. `public static` declarations
+4. `public` declarations
+5. `internal static` declarations
+6. `internal` declarations
+7. `private static` declarations
+8. `private` declarations

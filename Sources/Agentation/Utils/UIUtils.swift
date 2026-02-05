@@ -8,7 +8,7 @@ enum UIUtils {
         while let v = current {
             if let vc = v.value(forKey: "viewDelegate") as? UIViewController,
                !(vc is UINavigationController),
-               !(vc is UITabBarController){
+               !(vc is UITabBarController) {
                 return vc
             }
             current = v.superview

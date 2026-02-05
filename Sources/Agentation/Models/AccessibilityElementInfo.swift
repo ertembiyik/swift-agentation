@@ -3,16 +3,6 @@ import Foundation
 import UIKit
 
 struct AccessibilityElementInfo: ElementProtocol, Sendable {
-    let id: UUID
-    let role: String
-    let label: String
-    let value: String
-    let hint: String
-    let frame: CGRect
-    let traits: UIAccessibilityTraits
-    let children: [AccessibilityElementInfo]
-    let path: String
-
     var displayName: String {
         if !label.isEmpty { return label }
         if !role.isEmpty { return role }
@@ -22,6 +12,16 @@ struct AccessibilityElementInfo: ElementProtocol, Sendable {
     var shortType: String {
         role.isEmpty ? "element" : role.lowercased()
     }
+
+    let id: UUID
+    let role: String
+    let label: String
+    let value: String
+    let hint: String
+    let frame: CGRect
+    let traits: UIAccessibilityTraits
+    let children: [AccessibilityElementInfo]
+    let path: String
 
     func leafElements() -> [SnapshotElement] {
         if children.isEmpty {

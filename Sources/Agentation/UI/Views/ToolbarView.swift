@@ -16,15 +16,6 @@ struct ToolbarView: View {
 
     private static let size: CGFloat = 44
 
-    @State private var position: CGPoint? = nil
-    @State private var dragState = DragState.idle
-    @State private var showingSettings = false
-    @State private var showingPreview = false
-    @State private var copiedFeedback = false
-    @State private var geometryInfo = GeometryInfo(rect: .zero, safeAreaInsets: .init())
-
-    @Namespace private var morphNamespace
-
     var body: some View {
         toolbarContent
             .position(position ?? defaultPosition(in: geometryInfo))
@@ -66,6 +57,15 @@ struct ToolbarView: View {
             }
             .accessibilityHidden(true)
     }
+
+    @State private var position: CGPoint?
+    @State private var dragState = DragState.idle
+    @State private var showingSettings = false
+    @State private var showingPreview = false
+    @State private var copiedFeedback = false
+    @State private var geometryInfo = GeometryInfo(rect: .zero, safeAreaInsets: .init())
+
+    @Namespace private var morphNamespace
 
     private var toolbarContent: some View {
         UniversalGlassEffectContainer {
@@ -248,7 +248,6 @@ struct ToolbarView: View {
 }
 
 private struct BadgeView: View {
-    let count: Int
 
     var body: some View {
         Text(count > 99 ? "99+" : "\(count)")
@@ -259,15 +258,12 @@ private struct BadgeView: View {
             .background(Color.blue, in: Capsule())
             .transition(.scale.combined(with: .opacity))
     }
-    
+
+    let count: Int
+
 }
 
 private struct ToolbarButton: View {
-    let icon: String
-    let label: String
-    let action: () -> Void
-
-    @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
         Button(action: action) {
@@ -280,13 +276,22 @@ private struct ToolbarButton: View {
         .buttonStyle(.plain)
         .accessibilityLabel(label)
     }
+
+    let icon: String
+    let label: String
+    let action: () -> Void
+
+    @Environment(\.isEnabled) private var isEnabled
+
 }
 
 private struct ToolbarDivider: View {
+
     var body: some View {
         Rectangle()
             .fill(.white.opacity(0.2))
             .frame(width: 1, height: 20)
             .padding(.horizontal, 2)
     }
+
 }

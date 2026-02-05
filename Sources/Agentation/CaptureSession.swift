@@ -4,16 +4,6 @@ import UIKit
 @Observable
 final class CaptureSession {
 
-    var snapshot: HierarchySnapshot
-
-    var isPaused: Bool = false
-
-    var selectedElement: SnapshotElement?
-
-    var feedbackItems: [FeedbackItem]
-
-    var liveFrames: [UUID: CGRect] = [:]
-
     var annotationCount: Int {
         feedbackItems.count
     }
@@ -32,11 +22,16 @@ final class CaptureSession {
         return order.map { (screenName: $0, items: grouped[$0]!) }
     }
 
+    var snapshot: HierarchySnapshot
+    var isPaused = false
+    var selectedElement: SnapshotElement?
+    var feedbackItems: [FeedbackItem]
+    var liveFrames: [UUID: CGRect] = [:]
+
     @ObservationIgnored
     private var displayLinkTarget: DisplayLinkTarget?
 
     let startedAt: Date
-
     let dataSource: any HierarchyDataSource
 
     init(
@@ -221,5 +216,4 @@ final class CaptureSession {
             }
         }
     }
-    
 }

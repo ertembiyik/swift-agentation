@@ -3,6 +3,20 @@ import UniversalGlass
 
 struct FeedbackScreenView: View {
 
+    private var trimmedFeedback: String {
+        feedbackText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var isEditing: Bool {
+        existingFeedback != nil
+    }
+
+    @State private var feedbackText: String
+
+    @FocusState private var isFocused: Bool
+
+    @Environment(\.dismiss) private var dismiss
+
     let element: SnapshotElement
 
     let existingFeedback: String?
@@ -10,12 +24,6 @@ struct FeedbackScreenView: View {
     let onSubmit: (String) -> Void
 
     let onCancel: () -> Void
-
-    @State private var feedbackText: String
-
-    @FocusState private var isFocused: Bool
-
-    @Environment(\.dismiss) private var dismiss
 
     init(element: SnapshotElement,
          existingFeedback: String? = nil,
@@ -26,14 +34,6 @@ struct FeedbackScreenView: View {
         self.onSubmit = onSubmit
         self.onCancel = onCancel
         self._feedbackText = State(initialValue: existingFeedback ?? "")
-    }
-
-    private var trimmedFeedback: String {
-        feedbackText.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var isEditing: Bool {
-        existingFeedback != nil
     }
 
     var body: some View {

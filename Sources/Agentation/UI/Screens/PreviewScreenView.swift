@@ -2,8 +2,6 @@ import SwiftUI
 
 struct PreviewScreenView: View {
 
-    @Environment(\.dismiss) private var dismiss
-
     private var session: CaptureSession? {
         Agentation.shared.activeSession ?? Agentation.shared.lastSession
     }
@@ -14,6 +12,8 @@ struct PreviewScreenView: View {
         }
         return !session.feedbackItems.isEmpty
     }
+
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
@@ -58,7 +58,9 @@ struct PreviewScreenView: View {
 }
 
 private struct FeedbackItemRow: View {
+
     let item: FeedbackItem
+
     let onDelete: () -> Void
 
     var body: some View {

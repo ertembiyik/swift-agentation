@@ -39,7 +39,7 @@ final class AccessibilityHierarchyDataSource: HierarchyDataSource {
         guard frame.width > 0, frame.height > 0 else {
             return nil
         }
-        
+
         return frame
     }
 
@@ -156,5 +156,4 @@ final class AccessibilityHierarchyDataSource: HierarchyDataSource {
         }
         return "Element"
     }
-
 }
