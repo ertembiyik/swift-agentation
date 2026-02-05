@@ -172,14 +172,16 @@ This source works best with **UIKit** because it can traverse the entire view tr
 
 **UIKit:**
 
+No setup required — the data source traverses the `UIView` tree directly and captures all leaf views. You can optionally set `accessibilityIdentifier` or `accessibilityLabel` to improve element naming in the output.
+
 ```swift
 class ProfileViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        avatarImageView.accessibilityIdentifier = "avatarImage"
-        nameLabel.accessibilityLabel = "Jane Doe"
-        editButton.accessibilityIdentifier = "editProfileButton"
+        view.addSubview(avatarImageView)
+        view.addSubview(nameLabel)
+        view.addSubview(editButton)
     }
 }
 ```
