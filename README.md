@@ -1,7 +1,7 @@
 # swift-agentation
 
 <p align="center">
-  <video src="assets/demo.mp4" width="300" autoplay loop muted playsinline></video>
+  <video src="https://github.com/user-attachments/assets/f6b5cc0a-5e77-4400-baa5-6e9b41921229" autoplay loop muted playsinline></video>
 </p>
 
 <h3 align="center">Visual feedback for AI coding agents on iOS</h3>
