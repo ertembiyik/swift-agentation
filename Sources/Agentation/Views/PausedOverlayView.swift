@@ -1,3 +1,10 @@
+//
+//  PausedOverlayView.swift
+//  Agentation
+//
+//  Created by Ertem Biyik on 2025.
+//
+
 import SwiftUI
 
 struct PausedOverlayView: View {

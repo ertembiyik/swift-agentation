@@ -1,9 +1,29 @@
+//
+//  HierarchyDataSource.swift
+//  Agentation
+//
+//  Created by Ertem Biyik on 2025.
+//
+
 import UIKit
 
+/// A type that can snapshot the current UI and resolve element frames at runtime.
+///
+/// Agentation ships with two built-in conformances:
+///
+/// * ``ViewHierarchyDataSource`` — walks the `UIView` tree directly.
+/// * ``AccessibilityHierarchyDataSource`` — uses the iOS accessibility tree.
+///
+/// You can implement your own data source by conforming to this protocol.
 @MainActor
 protocol HierarchyDataSource {
+
+    /// Captures a snapshot of the current on-screen element tree.
     func capture() async -> HierarchySnapshot
+
+    /// Returns the current screen frame of a previously captured element, or `nil` if the element is no longer visible.
     func resolve(elementId: UUID) -> CGRect?
+
 }
 
 extension HierarchyDataSource {
@@ -46,4 +66,5 @@ extension HierarchyDataSource {
 
         return baseVC
     }
+
 }

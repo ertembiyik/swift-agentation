@@ -1,3 +1,10 @@
+//
+//  CaptureSession.swift
+//  Agentation
+//
+//  Created by Ertem Biyik on 2025.
+//
+
 import UIKit
 
 @MainActor
@@ -56,9 +63,26 @@ final class CaptureSession {
         displayLinkTarget?.invalidate()
     }
 
+}
+
+// MARK: - Hit Testing
+
+extension CaptureSession {
+
+    func hitTest(point: CGPoint) -> SnapshotElement? {
+        let candidates = snapshot.leafElements.filter { $0.frame.contains(point) }
+        return candidates.min(by: { ($0.frame.width * $0.frame.height) < ($1.frame.width * $1.frame.height) })
+    }
+
     func liveFrame(for item: FeedbackItem) -> CGRect {
         liveFrames[item.elementId] ?? item.elementFrame
     }
+
+}
+
+// MARK: - Feedback Operations
+
+extension CaptureSession {
 
     func addFeedback(_ text: String, for element: SnapshotElement) {
         let item = FeedbackItem(
@@ -106,10 +130,11 @@ final class CaptureSession {
         feedbackItems.contains { $0.elementId == elementId }
     }
 
-    func hitTest(point: CGPoint) -> SnapshotElement? {
-        let candidates = snapshot.leafElements.filter { $0.frame.contains(point) }
-        return candidates.min(by: { ($0.frame.width * $0.frame.height) < ($1.frame.width * $1.frame.height) })
-    }
+}
+
+// MARK: - Output Formatting
+
+extension CaptureSession {
 
     func formatAsMarkdown() -> String {
         var output = ""
@@ -199,6 +224,12 @@ final class CaptureSession {
         return try encoder.encode(output)
     }
 
+}
+
+// MARK: - Frame Tracking
+
+extension CaptureSession {
+
     private func startFrameTracking() {
         let target = DisplayLinkTarget { [weak self] in
             self?.updateFrames()
@@ -218,4 +249,5 @@ final class CaptureSession {
             }
         }
     }
+
 }

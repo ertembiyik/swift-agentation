@@ -1,3 +1,10 @@
+//
+//  ViewElementInfo.swift
+//  Agentation
+//
+//  Created by Ertem Biyik on 2025.
+//
+
 import CoreGraphics
 import Foundation
 

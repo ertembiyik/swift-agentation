@@ -1,3 +1,10 @@
+//
+//  IdleBadgesView.swift
+//  Agentation
+//
+//  Created by Ertem Biyik on 2025.
+//
+
 import SwiftUI
 
 struct IdleBadgesView: View {

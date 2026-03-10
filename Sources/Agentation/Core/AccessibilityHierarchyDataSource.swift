@@ -1,6 +1,17 @@
+//
+//  AccessibilityHierarchyDataSource.swift
+//  Agentation
+//
+//  Created by Ertem Biyik on 2025.
+//
+
 import UIKit
 import SwiftUI
 
+/// Uses the iOS accessibility tree to build a hierarchy snapshot.
+///
+/// This is the default and recommended data source. It captures elements that have
+/// `isAccessibilityElement = true` and extracts their label, value, hint, and traits.
 @MainActor
 final class AccessibilityHierarchyDataSource: HierarchyDataSource {
 
