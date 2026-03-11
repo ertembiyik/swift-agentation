@@ -1,10 +1,3 @@
-//
-//  HierarchyDataSource.swift
-//  Agentation
-//
-//  Created by Ertem Biyik on 2025.
-//
-
 import UIKit
 
 /// A type that can snapshot the current UI and resolve element frames at runtime.

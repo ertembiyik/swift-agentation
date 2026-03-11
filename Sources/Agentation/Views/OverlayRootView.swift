@@ -1,10 +1,3 @@
-//
-//  OverlayRootView.swift
-//  Agentation
-//
-//  Created by Ertem Biyik on 2025.
-//
-
 import SwiftUI
 
 struct OverlayRootView: View, HitTestable {

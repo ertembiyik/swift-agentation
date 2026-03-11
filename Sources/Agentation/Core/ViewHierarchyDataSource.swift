@@ -1,10 +1,3 @@
-//
-//  ViewHierarchyDataSource.swift
-//  Agentation
-//
-//  Created by Ertem Biyik on 2025.
-//
-
 import UIKit
 
 /// Walks the `UIView` tree directly to build a hierarchy snapshot.

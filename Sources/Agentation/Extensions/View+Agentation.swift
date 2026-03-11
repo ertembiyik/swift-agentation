@@ -1,10 +1,3 @@
-//
-//  View+Agentation.swift
-//  Agentation
-//
-//  Created by Ertem Biyik on 2025.
-//
-
 import SwiftUI
 
 extension View {
