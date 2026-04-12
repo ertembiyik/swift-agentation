@@ -1,5 +1,9 @@
 import UIKit
 
+/// Walks the `UIView` tree directly to build a hierarchy snapshot.
+///
+/// This source captures every leaf view regardless of accessibility settings. It works
+/// best with UIKit. For SwiftUI views, use `.agentationTag()` to register frames.
 @MainActor
 final class ViewHierarchyDataSource: HierarchyDataSource {
 

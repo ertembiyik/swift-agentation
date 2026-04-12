@@ -1,7 +1,12 @@
 import CoreGraphics
 import Foundation
 
+/// A user annotation attached to a captured UI element.
+///
+/// Each feedback item records which element was annotated, the user's text, and enough
+/// context (frame, path, screen) to produce meaningful output for an AI coding agent.
 public struct FeedbackItem: Identifiable, Sendable {
+
     public let id: UUID
     public let elementId: UUID
     public let text: String
@@ -33,4 +38,5 @@ public struct FeedbackItem: Identifiable, Sendable {
         self.screenName = screenName
         self.createdAt = createdAt
     }
+
 }
