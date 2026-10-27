@@ -10,6 +10,10 @@
 Tap elements in your app, add notes, and copy structured output that helps AI coding agents find the exact views you're referring to. Based on the original <a href="https://github.com/benjitaylor/agentation">agentation</a> web implementation.
 </p>
 
+<p align="center">
+How it works under the hood: <a href="https://medium.com/@ertembiyik/i-built-a-tool-that-lets-you-point-at-ios-views-and-tell-ai-what-to-change-ebfea007fa37">I Built a Tool That Lets You Point at iOS Views and Tell AI What to Change</a>
+</p>
+
 ---
 
 - [Installation](#installation)
