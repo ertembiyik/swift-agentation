@@ -250,6 +250,10 @@ These properties on `Agentation.shared` control capture behavior:
 | `includeSystemViews` | `false` | When enabled, system-provided views (keyboard, status bar internals) are included. |
 | `experimentalFrameTracking` | `false` | Enables `CADisplayLink`-based tracking so highlights follow elements that move or animate. |
 
+## How It Works
+
+The write-up covers walking accessibility trees, bridging SwiftUI views into UIKit inspection, and building the pass-through overlay: [I Built a Tool That Lets You Point at iOS Views and Tell AI What to Change](https://medium.com/@ertembiyik/i-built-a-tool-that-lets-you-point-at-ios-views-and-tell-ai-what-to-change-ebfea007fa37) ([X thread](https://x.com/ertembiyik/status/2019811409048244312)).
+
 ## Acknowledgments
 
 - [agentation](https://github.com/benjitaylor/agentation) — the original TypeScript/React implementation
